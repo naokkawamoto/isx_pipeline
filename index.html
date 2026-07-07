@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InsightScanX — Pipeline Storyboard</title>
+</head>
+<body>
+<meta charset="utf-8">
+<style>
+  :root{
+    --side:#212c3a; --side2:#2c3948; --side-tx:#aeb9c7; --side-tx2:#e7ecf2;
+    --navy:#2b3a72; --navy2:#33468a; --teal:#15a594; --teal-d:#0f8577;
+    --page:#f5f7f9; --card:#ffffff; --border:#e6e9ee; --ink:#1e2732; --mute:#6a7686;
+    --ok:#16a34a; --warn:#d68a1a; --bad:#d64545; --amber:#e7b53c;
+    --viewA:#3f4e5f; --viewB:#2a3644;
+  }
+  *{box-sizing:border-box}
+  #app{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+    color:var(--ink);background:#dfe3e8;min-height:100vh;display:flex;flex-direction:column}
+  .stage{display:flex;align-items:center;justify-content:center;padding:14px 14px 4px}
+  .frame-wrap{width:100%;max-width:1180px;aspect-ratio:1180/612;background:var(--page);border-radius:12px;
+    box-shadow:0 10px 40px rgba(20,30,45,.28);overflow:hidden;display:flex;position:relative}
+  /* sidebar */
+  .side{width:186px;background:var(--side);color:var(--side-tx);display:flex;flex-direction:column;flex:none;font-size:12.5px}
+  .brand{display:flex;align-items:center;gap:8px;padding:14px 14px 8px}
+  .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--teal),#0c6f63);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+  .brand b{color:#fff;font-size:14px;letter-spacing:.2px}
+  .org{margin:2px 12px 10px;background:var(--side2);border-radius:7px;padding:7px 9px;display:flex;align-items:center;gap:7px;color:#cdd6e0;font-size:11.5px}
+  .org .dot{width:14px;height:14px;border-radius:4px;background:#3b4a5c}
+  .back{padding:6px 14px;color:#8895a6;font-size:11.5px}
+  .nav{display:flex;flex-direction:column;padding:4px 8px;gap:2px}
+  .nav a{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;color:var(--side-tx);text-decoration:none;position:relative}
+  .nav a.on{background:var(--side2);color:#fff}
+  .nav a.on::after{content:"";position:absolute;right:-8px;top:6px;bottom:6px;width:3px;border-radius:3px;background:var(--teal)}
+  .nav svg{width:15px;height:15px;opacity:.9}
+  .side-foot{margin-top:auto;padding:10px 12px;display:flex;align-items:center;gap:8px;border-top:1px solid #2b3746}
+  .ava{width:24px;height:24px;border-radius:50%;background:#41516333;border:1px solid #4a5b6e;display:flex;align-items:center;justify-content:center;color:#cdd6e0;font-size:11px}
+  /* main col */
+  .col{flex:1;min-width:0;display:flex;flex-direction:column}
+  .top{height:44px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 14px;font-size:12.5px;color:var(--mute)}
+  .crumb{display:flex;align-items:center;gap:7px}
+  .crumb .s{color:#aab3bf}
+  .crumb b{color:var(--ink)}
+  .top .sp{flex:1}
+  .top .bell{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#7b8797}
+  .who{display:flex;align-items:center;gap:7px;color:var(--ink);font-weight:600;font-size:12px}
+  .who .ava{background:var(--navy);color:#fff;border:none}
+  /* toolbar */
+  .tools{height:46px;display:flex;align-items:center;gap:10px;padding:0 16px;background:var(--page)}
+  .seg{display:flex;background:#eef1f5;border-radius:9px;padding:3px;gap:2px}
+  .seg button{border:none;background:none;font:inherit;font-size:12px;color:#5d6a7a;padding:5px 12px;border-radius:7px;display:flex;align-items:center;gap:6px;cursor:pointer}
+  .seg button.on{background:var(--navy);color:#fff}
+  .seg.light button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .tsp{flex:1}
+  .btn{border:1px solid var(--border);background:#fff;color:var(--ink);font:inherit;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .btn.teal{background:var(--teal);color:#fff;border-color:var(--teal)}
+  /* workspace */
+  .work{flex:1;min-height:0;display:flex;gap:0;padding:0 16px 14px}
+  .viewer{flex:1;min-width:0;border-radius:12px;position:relative;overflow:hidden;
+    background:radial-gradient(120% 120% at 50% 15%,var(--viewA),var(--viewB));
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+  .grid{position:absolute;inset:0;background-image:
+    linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:34px 34px;transform:perspective(600px) rotateX(52deg) scale(1.6);transform-origin:50% 78%;opacity:.7}
+  .pc{position:absolute;inset:0;background-image:radial-gradient(rgba(205,220,235,.62) 1px,transparent 1.5px);background-size:6px 6px;mix-blend-mode:screen;opacity:.5}
+  .blob{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 32% 56%,rgba(150,180,205,.30),transparent 42%),radial-gradient(circle at 64% 46%,rgba(150,180,205,.20),transparent 40%)}
+  .vtop{position:absolute;top:12px;left:12px;z-index:3}
+  .vhelp{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:50%;background:#ffffff22;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .vbar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:#ffffffee;border-radius:11px;padding:6px 8px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+  .vbar span{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#5d6a7a}
+  .vbar span.on{background:var(--teal);color:#fff}
+  .gizmo{position:absolute;bottom:12px;right:12px;width:34px;height:34px}
+  /* floating obj-stats card */
+  .stats{position:absolute;top:12px;right:12px;width:236px;background:#fff;border-radius:11px;box-shadow:0 8px 24px rgba(0,0,0,.22);overflow:hidden;font-size:12px;z-index:4}
+  .stats .h{display:flex;align-items:center;gap:7px;padding:9px 11px;border-bottom:1px solid var(--border)}
+  .pill{background:var(--teal);color:#fff;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px}
+  .stats .h small{color:var(--mute);font-size:11px}
+  .strow{display:flex;align-items:center;gap:8px;padding:7px 11px}
+  .strow .ic{width:20px;height:20px;border-radius:5px;background:#eef1f5;display:flex;align-items:center;justify-content:center;color:#8b96a5;font-size:11px}
+  .strow .nm{flex:1;color:#3a4655}
+  .strow .ct{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .tg{width:26px;height:15px;border-radius:20px;background:#d3d9e1;position:relative;flex:none}
+  .tg.on{background:var(--teal)}
+  .tg::after{content:"";position:absolute;top:1.5px;width:12px;height:12px;border-radius:50%;background:#fff;left:1.5px;transition:.15s}
+  .tg.on::after{left:12.5px}
+  .stf{text-align:center;color:var(--navy);font-weight:600;padding:8px;border-top:1px solid var(--border);font-size:11.5px}
+  /* right panel */
+  .rpanel{width:250px;flex:none;background:#fff;border-radius:12px;margin-left:14px;border:1px solid var(--border);display:flex;flex-direction:column;font-size:12px;overflow:hidden}
+  .rp-h{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-bottom:1px solid var(--border);font-weight:600}
+  .rp-b{padding:12px 13px;overflow:auto}
+  .statgrid{padding:12px 13px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
+  .bigstat{font-size:12px;color:var(--mute)}
+  .bigstat b{display:block;font-size:26px;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:2px}
+  .twocol{display:flex;gap:10px}
+  .twocol>div{flex:1;background:#f7f9fb;border:1px solid var(--border);border-radius:9px;padding:8px 10px}
+  /* generic card / form */
+  .panel{flex:1;background:#fff;border-radius:12px;border:1px solid var(--border);padding:22px 26px;overflow:auto}
+  .panel h2{margin:0 0 4px;font-size:17px}
+  .panel .sub{color:var(--mute);font-size:12.5px;margin-bottom:18px}
+  .field{margin-bottom:16px;max-width:440px}
+  .field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+  .sel{border:1px solid var(--border);border-radius:9px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;background:#fff;font-size:13px}
+  .sel .v{color:var(--ink)}
+  .sel.ph .v{color:#9aa4b1}
+  .note{background:#fff8e1;border:1px solid #f0e0a8;border-left:3px solid var(--amber);border-radius:8px;padding:9px 11px;font-size:11.5px;color:#7a6412;margin-top:7px}
+  .note b{color:#5f4d08}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{background:#eef2f7;color:#3a4655;border-radius:20px;padding:4px 10px;font-size:11px}
+  .chip.teal{background:#e2f4f1;color:var(--teal-d)}
+  /* confidence + judge */
+  .cf{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+  .cf.hi{background:#e4f6ea;color:#188a45}
+  .cf.mid{background:#fdf0dc;color:#9a6510}
+  .cf.lo{background:#fbe4e4;color:#b23434}
+  .cf.done{background:var(--navy);color:#fff}
+  .jitem{border:1px solid var(--border);border-radius:9px;padding:7px 9px;margin-bottom:7px}
+  .jitem .r1{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+  .jitem .r1 b{font-size:12px}
+  .jitem .rr{margin-left:auto}
+  .jitem p{margin:0 0 5px;color:var(--mute);font-size:11px;line-height:1.4}
+  .jitem .alt{background:#f2f6ff;border:1px solid #d8e3fb;border-radius:7px;padding:5px 8px;font-size:11px;color:#2b3a72;margin-bottom:6px}
+  .jbtns{display:flex;gap:6px}
+  .jbtns .btn{padding:4px 10px;font-size:11px;flex:1;justify-content:center}
+  .chatbox{margin-top:6px;border:1px solid var(--border);border-radius:9px;display:flex;align-items:center;padding:7px 10px;color:#9aa4b1;font-size:11.5px;gap:8px}
+  .chatbox .s{margin-left:auto;background:var(--navy);color:#fff;border-radius:7px;padding:4px 9px;font-size:11px}
+  /* attr panel */
+  .attr .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--border);font-size:12px}
+  .attr .row .k{color:var(--mute)}
+  .attr .row .pd{border:1px solid var(--border);border-radius:6px;padding:2px 8px;background:#fff;font-size:11.5px;display:inline-flex;gap:6px;align-items:center}
+  /* iPad */
+  .ipwrap{flex:1;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e7ebf0,#d6dde5)}
+  .ipad{width:78%;max-width:820px;aspect-ratio:4/3;background:#0e141c;border-radius:26px;padding:12px;box-shadow:0 14px 40px rgba(20,30,45,.4);position:relative}
+  .ipscr{width:100%;height:100%;border-radius:16px;overflow:hidden;background:#f5f7f9;display:flex;flex-direction:column;position:relative}
+  .ipbar{height:34px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;padding:0 12px;font-size:11.5px;color:var(--mute)}
+  .ipbody{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+  .cam{flex:1;position:relative;background:radial-gradient(120% 120% at 50% 20%,#3f4e5f,#232f3c);overflow:hidden}
+  .det{position:absolute;border:2px solid var(--teal);border-radius:4px}
+  .detlab{position:absolute;background:var(--teal);color:#fff;font-size:9px;padding:1px 5px;border-radius:4px;transform:translateY(-100%)}
+  .alert{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#00000088;color:#fff;font-size:11px;padding:5px 11px;border-radius:20px;display:flex;gap:8px;align-items:center}
+  .cov{position:absolute;top:10px;right:12px;background:#00000066;color:#fff;font-size:10.5px;padding:5px 9px;border-radius:9px}
+  .ipctrl{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center}
+  .recdot{width:44px;height:44px;border-radius:50%;background:#d64545;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+  .tagbtn{background:#fff;color:var(--navy);border-radius:20px;padding:8px 13px;font-size:12px;font-weight:600;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+  .modecard{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;width:120px;text-align:center;font-size:12px}
+  .modecard.on{border-color:var(--teal);box-shadow:0 0 0 2px #15a59433}
+  .modecard .em{font-size:22px;margin-bottom:4px}
+  /* navigator */
+  .nav-bar{flex:none;height:74px;background:#1b2430;color:#cdd6e0;display:flex;align-items:center;gap:14px;padding:0 18px}
+  .nbtn{width:38px;height:38px;border-radius:10px;border:1px solid #33414f;background:#242f3d;color:#cdd6e0;font-size:16px;cursor:pointer;flex:none}
+  .nbtn:disabled{opacity:.35;cursor:default}
+  .ninfo{flex:1;min-width:0}
+  .ninfo .t{display:flex;align-items:center;gap:9px}
+  .actbadge{font-size:10px;font-weight:700;letter-spacing:.4px;color:#0e141c;background:var(--teal);padding:2px 8px;border-radius:20px}
+  .ninfo .t b{color:#fff;font-size:14px}
+  .ninfo .t .code{color:#7f8ea0;font-size:12px;font-variant-numeric:tabular-nums}
+  .ninfo .n{color:#9fb0c2;font-size:11.5px;margin-top:3px;line-height:1.4;max-width:820px}
+  .dots{display:flex;gap:5px;flex-wrap:wrap;max-width:210px;justify-content:flex-end}
+  .dots i{width:8px;height:8px;border-radius:50%;background:#3a4756;cursor:pointer}
+  .dots i.on{background:var(--teal);width:18px;border-radius:5px}
+  .devtag{font-size:10px;color:#7f8ea0;border:1px solid #33414f;border-radius:6px;padding:2px 7px}
+  /* S11 layers / hotspots / recommend */
+  .lyr{position:absolute;inset:0}
+  .lyrpanel{position:absolute;top:12px;left:12px;z-index:6;background:#ffffffee;border-radius:10px;padding:9px 11px;font-size:11.5px;box-shadow:0 4px 14px rgba(0,0,0,.2);display:flex;flex-direction:column;gap:6px;width:118px}
+  .lyrrow{display:flex;align-items:center;gap:8px;cursor:pointer;color:#3a4655;user-select:none}
+  .pchot{position:absolute;width:32px;height:32px;border-radius:50%;border:2px dashed #bcd3ff;cursor:pointer;z-index:4;transform:translate(-50%,-50%)}
+  .pchot:hover{background:#8fb4ff40}
+  .recpop{position:absolute;z-index:9;background:#fff;border-radius:11px;box-shadow:0 10px 28px rgba(0,0,0,.3);padding:11px 12px;width:212px;font-size:11.5px;display:none}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app">
+  <div class="stage"><div class="frame-wrap" id="stageInner"></div></div>
+  <div class="nav-bar">
+    <button class="nbtn" id="prev">‹</button>
+    <div class="ninfo">
+      <div class="t"><span class="actbadge" id="act"></span><b id="title"></b><span class="code" id="code"></span><span class="devtag" id="dev"></span></div>
+      <div class="n" id="note"></div>
+    </div>
+    <div class="dots" id="dots"></div>
+    <button class="nbtn" id="next">›</button>
+  </div>
+</div>
+
+<script>
+const IC={
+  overview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  loc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-6 7-12a7 7 0 1 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  issue:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>',
+  set:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2.2-1.3L14 2h-4l-.4 2.2A7 7 0 0 0 7.4 5.5l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2.2 1.3L10 22h4l.4-2.2a7 7 0 0 0 2.2-1.3l2.3 1 2-3.4-2-1.5c.1-.4.1-.9.1-1.3z"/></svg>'
+};
+const giz='<svg viewBox="0 0 40 40"><line x1="20" y1="20" x2="20" y2="6" stroke="#37c26f" stroke-width="2"/><line x1="20" y1="20" x2="33" y2="27" stroke="#d64545" stroke-width="2"/><line x1="20" y1="20" x2="8" y2="27" stroke="#3b82f6" stroke-width="2"/><circle cx="20" cy="6" r="3" fill="#37c26f"/><circle cx="33" cy="27" r="3" fill="#d64545"/><circle cx="8" cy="27" r="3" fill="#3b82f6"/></svg>';
+
+// ---- S11 ダミーMEP（信頼度で色分け）----
+let s11n=8;
+const CFC={hi:'#37c26f',mid:'#e7b53c',lo:'#e1684f'};
+const MEP_PARTS=[
+ {t:'p',a:[120,150,660,150],w:13,c:'hi'},
+ {t:'p',a:[120,150,120,360],w:12,c:'hi'},
+ {t:'f',a:[120,150],c:'hi'},
+ {t:'p',a:[260,150,260,300],w:9,c:'mid'},
+ {t:'f',a:[260,150],c:'mid'},
+ {t:'v',a:[330,150],c:'mid'},
+ {t:'p',a:[430,150,430,320],w:9,c:'hi'},
+ {t:'f',a:[430,150],c:'hi'},
+ {t:'v',a:[430,235],c:'hi'},
+ {t:'p',a:[430,320,640,320],w:9,c:'mid'},
+ {t:'p',a:[640,150,640,345],w:12,c:'hi'},
+ {t:'f',a:[640,150],c:'hi'},
+ {t:'p',a:[540,150,540,235],w:7,c:'lo'},
+ {t:'f',a:[540,150],c:'lo'},
+ {t:'p',a:[200,360,560,360],w:9,c:'mid'},
+ {t:'v',a:[200,360],c:'mid'},
+ {t:'f',a:[120,360],c:'mid'},
+ {t:'f',a:[260,300],c:'lo'},
+ {t:'f',a:[640,345],c:'hi'},
+ {t:'f',a:[560,360],c:'mid'}
+];
+function mepSvg(n){
+  return MEP_PARTS.slice(0,n).map(p=>{const col=CFC[p.c];
+    if(p.t==='p'){const[x1,y1,x2,y2]=p.a;return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${p.w}" stroke-linecap="round" opacity="0.92"/>`;}
+    if(p.t==='v'){const[x,y]=p.a;return `<g><rect x="${x-11}" y="${y-9}" width="22" height="18" rx="3" fill="${col}"/><line x1="${x}" y1="${y-9}" x2="${x}" y2="${y-17}" stroke="${col}" stroke-width="3"/><circle cx="${x}" cy="${y-19}" r="4" fill="none" stroke="${col}" stroke-width="2"/></g>`;}
+    const[x,y]=p.a;return `<circle cx="${x}" cy="${y}" r="8" fill="${col}"/>`;}).join('');
+}
+function s11update(){
+  const svg=document.getElementById('lyr-mep'); if(svg) svg.innerHTML=mepSvg(s11n);
+  const c=document.getElementById('mepCount'); if(c) c.textContent=Math.min(s11n,MEP_PARTS.length);
+  const b=document.getElementById('mepBtn'); if(b&&s11n>=MEP_PARTS.length){b.textContent='変換完了';b.disabled=true;b.style.opacity=.6;}
+}
+
+function sidebar(active){
+  const it=[['overview','概要'],['loc','ロケーション'],['issue','課題'],['set','設定']];
+  return `<div class="side">
+    <div class="brand"><div class="logo">◈</div><b>InsightScanX</b></div>
+    <div class="org"><div class="dot"></div>One Technology Japan</div>
+    <div class="back">‹ プロジェクト一覧に戻る</div>
+    <div class="nav">${it.map(([k,l])=>`<a class="${k===active?'on':''}">${IC[k]}<span>${l}</span></a>`).join('')}</div>
+    <div class="side-foot"><div class="ava">K</div><div style="font-size:11px;line-height:1.3"><div style="color:#e7ecf2">Kawamoto</div><div style="color:#7f8ea0">管理者 · V3.1.0</div></div></div>
+  </div>`;
+}
+function topbar(crumb){
+  return `<div class="top"><div class="crumb">🔎 ${crumb}</div><div class="sp"></div>
+    <div class="bell">🔔</div><div class="who"><div class="ava">K</div>Kawamoto</div></div>`;
+}
+function viewer(active,inner=''){
+  const seg=['メッシュ','点群','MEP'].map(x=>`<button class="${x===active?'on':''}">${x}</button>`).join('');
+  const bar=['📏','＋','📊','◎','⭳','⛶'].map((x,i)=>`<span class="${i===2?'on':''}">${x}</span>`).join('');
+  return `<div class="viewer"><div class="grid"></div><div class="pc"></div><div class="blob"></div>
+    <div class="vtop"><div class="seg light" style="background:#ffffffcc">${seg}</div></div>
+    <div class="vhelp">?</div>${inner}
+    <div class="vbar">${bar}</div><div class="gizmo">${giz}</div></div>`;
+}
+function objStats(){
+  const rows=[['バタフライバルブ',15],['フランジ',30],['ゴム防振継手',1],['ゲートバルブ',4],['ねじ込み式エルボ',1]];
+  return `<div class="stats"><div class="h"><span class="pill">オブジェクト統計</span><small>51個検出</small></div>
+    <div class="strow"><span style="color:var(--mute);font-size:11px">ラベルを表示</span><span class="tg" style="margin-left:auto"></span></div>
+    ${rows.map(([n,c])=>`<div class="strow"><span class="ic"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#8b96a5" stroke-width="2" stroke-linejoin="round"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2zM4 6.5l8 4.5 8-4.5M12 11v9"/></svg></span><span class="nm">${n}</span><span class="ct">${c}</span><span class="tg on"></span></div>`).join('')}
+    <div class="stf">すべて表示</div></div>`;
+}
+function rstatus(){
+  return `<div class="rpanel"><div class="rp-h">課題 (0) <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#aab3bf" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 16.5l9 5 9-5"/></svg></div>
+    <div style="padding:18px 13px;color:#aab3bf;font-size:11.5px;text-align:center;border-bottom:1px solid var(--border)">課題はありません</div>
+    <div class="statgrid" style="flex:1"><div class="bigstat">スキャン総数 <b>5</b></div>
+      <div class="twocol"><div>未解決<br><b style="font-size:18px">0</b></div><div>解決済み<br><b style="font-size:18px">0</b></div></div>
+      <div class="bigstat" style="font-size:11px">最終更新 <span style="color:var(--ink)">2026/06/18</span></div></div></div>`;
+}
+function cms({crumb,tabs='プライマリスキャン',right='',main,pri='新規スキャンをアップロード'}){
+  const tb=['プライマリスキャン','履歴','課題'].map(x=>`<button class="${x===tabs?'on':''}">${x}</button>`).join('');
+  return sidebar('loc')+`<div class="col">${topbar(crumb)}
+    <div class="tools"><div class="seg">${tb}</div><div class="tsp"></div><button class="btn">✎ 編集</button>${pri?`<button class="btn pri">＋ ${pri}</button>`:''}</div>
+    <div class="work">${main}${right}</div></div>`;
+}
+
+const FRAMES=[
+/*1*/{code:'S1–S2',act:'CMS · セットアップ',dev:'CMSブラウザ',title:'案件登録：ビル種類＋部屋種別',
+ note:'ビル種類で配管アイテムグループを絞り込み → さらに部屋種別で絞り込み。ここが Phase0（L0 Context）。絞り込まれた候補が右に出る。',
+ build:()=>cms({crumb:'TKサンプルビル ▸ <span class="s">Locations</span> ▸ <b>新規ロケーション登録</b>',pri:'保存',
+  main:`<div class="panel"><h2>新規ロケーション登録</h2><div class="sub">ビルと部屋の種別を選ぶと、対象の配管アイテムグループが自動で絞り込まれます。</div>
+   <div class="field"><label>ビル種類</label><div class="sel"><span class="v">オフィスビル</span><span>▾</span></div>
+     <div class="note"><b>注釈：</b>ビル種類に基づき配管アイテムグループを絞り込み</div></div>
+   <div class="field"><label>部屋種別</label><div class="sel"><span class="v">機械室（地下・主）</span><span>▾</span></div>
+     <div class="note"><b>注釈：</b>さらに部屋種別に基づき配管アイテムグループを絞り込み</div></div>
+   <div class="field"><label>絞り込み結果（対象アイテムグループ）</label>
+     <div class="chips"><span class="chip teal">冷温水配管</span><span class="chip teal">冷却水配管</span><span class="chip">ゲートバルブ</span><span class="chip">バタフライバルブ</span><span class="chip">フランジ</span><span class="chip">ポンプ</span><span class="chip">熱交換器</span><span class="chip">＋42</span></div></div>
+   </div>`,
+  right:`<div class="rpanel"><div class="rp-h">絞り込みプレビュー</div><div class="rp-b">
+    <div class="bigstat">対象アイテム種<b>約100</b></div><div style="height:10px"></div>
+    <div class="bigstat">参照標準<b style="font-size:14px">MLIT標準図 / JIS</b></div>
+    <div class="note" style="margin-top:14px">機械室（地下・主）はアイテム数 ≦100 種に収まる想定。</div></div></div>`})},
+/*2*/{code:'S3',act:'CMS · セットアップ',dev:'CMSブラウザ',title:'下図登録（任意）＋マーカー配置',
+ note:'下図はあくまで目安・任意。マーカーはオーバーラップ時の目印として使う（世界座標の必須基準ではない）。',
+ build:()=>cms({crumb:'TKサンプルビル ▸ <span class="s">Basement Machineroom</span> ▸ <b>下図</b>',pri:'下図をアップロード',
+  main:`<div class="panel"><h2>下図の登録（任意）</h2><div class="sub">平面図PDF/画像を登録できます。マーカーは重なり合わせの目印として配置します。</div>
+   <div style="border:2px dashed var(--border);border-radius:12px;height:64%;position:relative;background:#fafbfc;overflow:hidden">
+     <div style="position:absolute;inset:18px;border:1px solid #dfe4ea;border-radius:8px;background:
+       repeating-linear-gradient(90deg,#eef1f5 0 1px,transparent 1px 60px),repeating-linear-gradient(#eef1f5 0 1px,transparent 1px 60px)"></div>
+     <div style="position:absolute;left:26%;top:33%;color:#e11d1d;font-weight:800;font-size:16px">◎<span style="font-size:10px;color:#fff;background:#c62828;border-radius:4px;padding:1px 5px;margin-left:3px;vertical-align:middle">M1</span></div>
+     <div style="position:absolute;left:64%;top:58%;color:#e11d1d;font-weight:800;font-size:16px">◎<span style="font-size:10px;color:#fff;background:#c62828;border-radius:4px;padding:1px 5px;margin-left:3px;vertical-align:middle">M2</span></div>
+     <div style="position:absolute;left:40%;top:80%;background:#fff;border:1px solid var(--border);border-radius:7px;padding:4px 9px;font-size:11.5px;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)">📄 Basement_Plan.pdf</div></div>
+   <div class="note" style="margin-top:14px"><b>注釈：</b>下図は目安・任意。マーカー＝オーバーラップ時の目印（下図なし運用も可）。</div></div>`,
+  right:rstatus()})},
+/*3*/{code:'S4–S5',act:'iPad · 現場スキャン',dev:'iPadアプリ',title:'部屋選択＋キャプチャモード',
+ note:'点群取得（MEP選択で画像枚数・端末の向き等が自動最適化）／RoomPlan間取り（優先度低）。AI認識ON。',
+ build:()=>ipad('スキャン準備',`
+   <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding:20px 26px">
+     <div style="font-size:13px;color:var(--mute)">ロケーション：<b style="color:var(--ink)">Basement Machineroom</b></div>
+     <div style="font-size:12px;font-weight:600">キャプチャモード</div>
+     <div style="display:flex;gap:14px">
+       <div class="modecard on"><div class="em">🧊</div>点群取得<div style="color:var(--teal-d);font-size:10px;margin-top:3px">MEP最適化 ON</div></div>
+       <div class="modecard"><div class="em">📐</div>RoomPlan<div style="color:var(--mute);font-size:10px;margin-top:3px">間取り・優先度低</div></div>
+     </div>
+     <div style="display:flex;align-items:center;gap:10px;font-size:12px"><span class="tg on"></span>AI認識をON（現場プレビュー）</div>
+     <div class="note"><b>注釈：</b>MEPを選ぶとスキャン設定が自動最適化。部屋分割はマーカーで連結。</div>
+     <div style="background:#f7f9fb;border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:12px">
+       <div style="font-weight:700;margin-bottom:6px">MEP最適化スキャン設定（自動）</div>
+       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border)"><span style="color:var(--mute)">撮影画像</span><span>多め（継手を密に）</span></div>
+       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--border)"><span style="color:var(--mute)">端末の向き</span><span>配管に正対</span></div>
+       <div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:var(--mute)">有効レンジ</span><span>〜5m（機械室に最適）</span></div></div>
+     <div style="margin-top:auto"><button class="btn pri" style="width:100%;justify-content:center">スキャンへ進む ›</button></div>
+   </div>`)},
+/*4*/{code:'S6–S7',act:'iPad · 現場スキャン',dev:'iPadアプリ',title:'スキャン中：AI認識＋アラート＋GTタグ',
+ note:'明るさ／スピード／カバレッジのアラート。人間はスキャンしながら“種まき”＝系統・流体・呼び径をGTタグ（AIが弱く人間が一瞬で分かる情報）。',
+ build:()=>ipad('スキャン中',`
+   <div class="cam">
+     <div class="pc"></div><div class="blob"></div>
+     <div class="alert">⚠ スピード注意 · ゆっくり動かしてください</div>
+     <div class="cov">カバレッジ 68% · 明るさ OK</div>
+     <div class="det" style="left:22%;top:34%;width:70px;height:120px"></div><div class="detlab" style="left:22%;top:34%">配管 0.92</div>
+     <div class="det" style="left:52%;top:44%;width:64px;height:48px"></div><div class="detlab" style="left:52%;top:44%">バルブ 0.81</div>
+     <div style="position:absolute;left:50%;bottom:78px;transform:translateX(-50%);background:#fff;border-radius:10px;padding:9px 12px;font-size:11px;box-shadow:0 4px 14px rgba(0,0,0,.3);width:210px">
+       <b style="font-size:12px">GTタグ（種まき）</b>
+       <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><span class="chip teal">系統：冷水(往)</span><span class="chip">呼び径：125A</span></div>
+       <div style="color:var(--mute);margin-top:5px;font-size:10px">→ 数珠つなぎで同系統に伝播</div></div>
+     <div class="ipctrl"><span class="tagbtn">＋ タグ</span><span class="recdot"></span><span class="tagbtn">■ 停止</span></div>
+   </div>`)},
+/*5*/{code:'S8',act:'iPad · 現場スキャン',dev:'iPadアプリ',title:'終了 → オフラインプレビュー → アップロード',
+ note:'オフラインでは点群のプレビューのみ（変換はクラウド）。オンラインになったらクラウドへアップロード。',
+ build:()=>ipad('スキャン完了',`
+   <div class="cam" style="background:radial-gradient(120% 120% at 50% 25%,#3f4e5f,#232f3c)">
+     <div class="pc"></div><div class="blob"></div><div class="grid"></div>
+     <svg class="lyr" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice" style="opacity:.3"><g stroke="#cdd8e4" stroke-width="9" fill="none" stroke-linecap="round"><line x1="120" y1="180" x2="680" y2="180"/><line x1="120" y1="180" x2="120" y2="420"/><line x1="360" y1="180" x2="360" y2="380"/><line x1="560" y1="180" x2="560" y2="400"/><line x1="560" y1="380" x2="690" y2="380"/></g><ellipse cx="300" cy="335" rx="82" ry="52" fill="#b9c6d6" opacity=".18"/></svg>
+     <div class="cov">オフライン · 点群プレビュー</div>
+     <div style="position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:10px;align-items:center">
+       <span class="tagbtn">再スキャン</span>
+       <span class="tagbtn" style="background:var(--teal);color:#fff">☁ クラウドへアップロード</span></div>
+     <div style="position:absolute;top:12px;left:12px;background:#00000066;color:#fff;font-size:11px;padding:5px 9px;border-radius:9px">タグ 3 · 点群 4.8M点</div>
+   </div>`)},
+/*6*/{code:'S9',act:'CMS · 統合',dev:'CMSブラウザ',title:'統合モード：複数点群をマーカーで結合',
+ note:'部屋を選ぶと統合モード。複数スキャンをオーバーラップのマーカーで結合。LAS（Leica等）もインポート可。',
+ build:()=>cms({crumb:'Basement Machineroom ▸ <b>統合モード</b>',tabs:'プライマリスキャン',pri:'LASをインポート',
+  main:viewer('点群',`<div style="position:absolute;top:56px;left:12px;z-index:5"><span class="chip teal" style="background:#0f8577;color:#fff">統合モード ON</span></div>
+   <div class="stats" style="width:212px"><div class="h"><span class="pill" style="background:var(--navy)">結合スキャン</span><small>5件</small></div>
+     ${['Scan_01','Scan_02','Scan_03','Scan_04','Leica_LAS'].map((s,i)=>`<div class="strow"><span class="ic">${i===4?'📥':'🧊'}</span><span class="nm">${s}</span><span class="cf ${i<4?'done':'mid'}">${i<4?'結合':'取込'}</span></div>`).join('')}
+     <div class="stf">マーカーで整列 ✓</div></div>`),
+  right:rstatus()})},
+/*7*/{code:'S10.5',act:'CMS · 統合',dev:'CMSブラウザ',title:'点群クリーニング（自動ルール＋手動UI）',
+ note:'変換前にゴミ除去。まず無料のルールで外れ値・映り込み人物を自動除去（＝推論カスケードの“安い手段が先”）→ ブラシで手動削除。undoあり。',
+ build:()=>cms({crumb:'Basement Machineroom ▸ <b>クリーニング</b>',pri:'変換へ進む',
+  main:viewer('点群',`
+   <div style="position:absolute;top:56px;left:12px;z-index:5;display:flex;gap:6px">
+     <span class="chip teal" style="background:#0f8577;color:#fff">🖌 手動ブラシ</span><span class="chip" style="background:#ffffffcc">↺ 元に戻す</span></div>
+   <div style="position:absolute;left:40%;top:46%;width:80px;height:80px;border:2px dashed #d64545;border-radius:50%"></div>
+   <div style="position:absolute;left:40%;top:38%;color:#ffb4b4;font-size:10px">選択：ゴミ/映り込み</div>
+   <div class="stats" style="width:220px"><div class="h"><span class="pill">自動クリーニング</span><small>ルール</small></div>
+     <div class="strow"><span class="nm">統計的外れ値</span><span class="cf done">−1,240点</span></div>
+     <div class="strow"><span class="nm">映り込み人物（AI）</span><span class="cf done">1件除去</span></div>
+     <div class="strow"><span class="nm">床/天井の平面</span><span class="cf mid">保持</span></div>
+     <div class="stf">残りは手動ブラシで調整</div></div>`),
+  right:rstatus()})},
+/*8*/{code:'S11',act:'CMS · 変換＋Judge',dev:'CMSブラウザ',title:'MEP変換（バッチ）→ Judge・レイヤー切替・点群レコメンド',
+ note:'レイヤー(メッシュ/点群/MEP/下図)は各ON/OFF。MEPはダミー配管＋継手を信頼度で色分け。点群の◯をタップ→レコメンド。「MEP変換を実行」を押すと変換が増える。右＝LLM-judge。',
+ build:()=>{ s11n=8; return cms({crumb:'Basement Machineroom ▸ <b>MEP変換</b>',tabs:'プライマリスキャン',pri:'',
+  main:`<div class="viewer"><div class="grid"></div>
+    <div id="lyr-mesh" class="lyr" style="display:none"><div style="position:absolute;left:24%;top:32%;width:24%;height:36%;background:#ffffff16;border-radius:18px"></div><div style="position:absolute;left:58%;top:28%;width:16%;height:42%;background:#ffffff12;border-radius:14px"></div></div>
+    <div id="lyr-pc" class="lyr"><div class="pc"></div>
+      <div class="pchot" data-name="バタフライバルブ 100A" data-conf="中" style="left:37%;top:41%"></div>
+      <div class="pchot" data-name="フランジ 125A" data-conf="高" style="left:60%;top:33%"></div>
+      <div class="pchot" data-name="ねじ込み式エルボ" data-conf="低" style="left:46%;top:60%"></div></div>
+    <div id="lyr-plan" class="lyr" style="display:none"><div style="position:absolute;inset:13%;border:1px solid #ffffff44;background:repeating-linear-gradient(90deg,#ffffff10 0 1px,transparent 1px 46px),repeating-linear-gradient(#ffffff10 0 1px,transparent 1px 46px)"></div></div>
+    <svg id="lyr-mep" class="lyr" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet">${mepSvg(s11n)}</svg>
+    <div class="lyrpanel"><div style="font-weight:700;color:#26303f">レイヤー表示</div>
+      <div class="lyrrow" data-lyr="mesh"><span class="tg"></span>メッシュ</div>
+      <div class="lyrrow" data-lyr="pc"><span class="tg on"></span>点群</div>
+      <div class="lyrrow" data-lyr="mep"><span class="tg on"></span>MEP</div>
+      <div class="lyrrow" data-lyr="plan"><span class="tg"></span>下図</div>
+      <div style="border-top:1px solid #e6e9ee;margin-top:1px;padding-top:5px;display:flex;gap:9px;font-size:10px;color:#6a7686"><span style="color:#37c26f">●高</span><span style="color:#e7b53c">●中</span><span style="color:#e1684f">●低</span></div></div>
+    ${objStats()}<div class="vhelp">?</div>
+    <div style="position:absolute;bottom:52px;left:12px;display:flex;gap:8px;align-items:center;z-index:6">
+      <button id="mepBtn" class="btn teal" style="box-shadow:0 3px 10px rgba(0,0,0,.28)">＋ MEP変換を実行</button>
+      <span style="background:#000000aa;color:#fff;font-size:11px;padding:6px 10px;border-radius:9px">変換済み <b id="mepCount">${Math.min(s11n,MEP_PARTS.length)}</b> / 51 · 信頼度で色分け</span></div>
+    <div class="recpop" id="recPop"></div>
+    <div class="vbar">${['📏','＋','📊','◎','⭳','⛶'].map((x,k)=>`<span class="${k===2?'on':''}">${x}</span>`).join('')}</div>
+    <div class="gizmo">${giz}</div></div>`,
+  right:`<div class="rpanel"><div class="rp-h">🤖 AI評価（LLM-as-judge） <span class="cf lo">要確認 3</span></div>
+    <div style="flex:1;overflow:auto;padding:12px 13px">
+      <div class="jitem"><div class="r1"><b>Pipe_0039</b><span class="rr cf hi">高 0.94</span></div><p>外径216.6mm → 200A。種（冷水）と整合。</p><div class="jbtns"><button class="btn pri">確定</button></div></div>
+      <div class="jitem"><div class="r1"><b>Pipe_0008</b><span class="rr cf mid">中 0.61</span></div><p>127mmは100A/125A境界。系統一貫性で125A優勢。</p><div class="alt">代替案：呼び径 <b>125A</b>（信頼度中）</div><div class="jbtns"><button class="btn pri">承認</button><button class="btn">選び直す</button></div></div>
+      <div class="jitem"><div class="r1"><b>継手 2000122</b><span class="rr cf lo">低 0.38</span></div><p>接続先が曖昧。工学的もっともらしさ低で要判定。</p><div class="alt">代替案：<b>ねじ込み式エルボ</b></div><div class="jbtns"><button class="btn pri">承認</button><button class="btn">選び直す</button></div></div>
+    </div>
+    <div style="padding:9px 12px;border-top:1px solid var(--border)"><div class="chatbox" style="margin:0">評価を自然言語で質問…（将来：対話）<span class="s">送信</span></div></div></div>`}); },
+ after:()=>{
+   document.querySelectorAll('.lyrrow').forEach(r=>{r.onclick=()=>{const t=r.querySelector('.tg');t.classList.toggle('on');const el=document.getElementById('lyr-'+r.dataset.lyr);if(el)el.style.display=t.classList.contains('on')?'':'none';};});
+   const mb=document.getElementById('mepBtn');if(mb)mb.onclick=()=>{s11n=Math.min(s11n+6,MEP_PARTS.length);s11update();};
+   const pop=document.getElementById('recPop');
+   document.querySelectorAll('.pchot').forEach(h=>{h.onclick=()=>{const cf={'高':'hi','中':'mid','低':'lo'}[h.dataset.conf];pop.style.left=(h.offsetLeft+38)+'px';pop.style.top=(h.offsetTop)+'px';pop.style.display='block';pop.innerHTML=`<div style="font-weight:700;margin-bottom:5px">点群レコメンド</div><div style="color:#6a7686;margin-bottom:8px">この点群 → <b style="color:#1e2732">${h.dataset.name}</b> <span class="cf ${cf}">${h.dataset.conf}信頼度</span></div><div class="jbtns"><button class="btn pri" id="recOk">承認して変換</button><button class="btn" id="recNo">選び直す</button></div>`;document.getElementById('recOk').onclick=()=>{s11n=Math.min(s11n+1,MEP_PARTS.length);s11update();pop.style.display='none';};document.getElementById('recNo').onclick=()=>{pop.style.display='none';};};});
+ }},
+/*9*/{code:'S13–S14',act:'CMS · 確定',dev:'CMSブラウザ',title:'パーツ確定（属性・プルダウン・タップ確定）',
+ note:'MEP/点群のパーツを選ぶと属性＋信頼度を表示。プルダウンで選び直すと「確定」へ。2回目以降は確定するたび周辺を再推論（対話ループ）。undoは保険。全てタップ確定。',
+ build:()=>cms({crumb:'Basement Machineroom ▸ <b>レビュー</b>',pri:'IFCエクスポート',
+  main:viewer('MEP',`<svg class="lyr" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet">${mepSvg(MEP_PARTS.length)}</svg><div style="position:absolute;left:37%;top:23%;width:34px;height:26px;border:2px solid #fff;border-radius:5px;box-shadow:0 0 0 4px #ffffff44,0 0 0 6px #15a59455"></div>
+   <div style="position:absolute;bottom:52px;left:12px"><span class="chip" style="background:#ffffffcc">↺ 元に戻す（undo）</span></div>`),
+  right:`<div class="rpanel"><div class="rp-h">パーツ属性 <span class="cf mid">中 0.61</span></div>
+    <div class="rp-b attr">
+      <div class="row"><span class="k">種別</span><span class="pd">ゲートバルブ ▾</span></div>
+      <div class="row"><span class="k">呼び径</span><span class="pd">125A ▾</span></div>
+      <div class="row"><span class="k">系統／流体</span><span class="pd">冷水(往) ▾</span></div>
+      <div class="row"><span class="k">材質</span><span class="pd">FCD ▾</span></div>
+      <div class="row"><span class="k">接続</span><span style="font-size:11px;color:var(--mute)">Pipe_0008 ／ Pipe_0009</span></div>
+      <div class="alt" style="margin-top:10px">judge代替案：正しくは <b>ゲートバルブ 125A</b> ？</div>
+      <button class="btn pri" style="width:100%;justify-content:center;margin-top:8px">タップで確定 → GT記録</button>
+      <div class="note" style="margin-top:10px"><b>注釈：</b>確定＝学習データ(GT)。確定すると隣接パーツを再推論。</div>
+    </div></div>`})},
+/*10*/{code:'S15',act:'CMS · 進捗',dev:'CMSブラウザ',title:'進捗％（確定率＋点群カバレッジ）',
+ note:'MEPが徐々に仕上がる。進捗は2指標：確定率＝確定/検出、点群カバレッジ＝確定MEPで説明できた点群/全点群（＝「N%変換」の目安）。数量も自ずと拾える。',
+ build:()=>cms({crumb:'Basement Machineroom ▸ <b>進捗</b>',pri:'IFCエクスポート',
+  main:viewer('MEP',`<div class="stats" style="width:212px"><div class="h"><span class="pill">変換パーツ積算</span></div>
+    ${[['バタフライバルブ',15,12],['フランジ',30,22],['ゲートバルブ',4,4],['ゴム防振継手',1,1],['ねじ込み式エルボ',1,0]].map(([n,t,d])=>`<div class="strow"><span class="nm">${n}</span><span class="ct">${d}/${t}</span></div>`).join('')}
+    <div class="stf">確定 39 / 51</div></div>`),
+  right:`<div class="rpanel"><div class="rp-h">進捗（目安）</div><div class="statgrid" style="border:none;flex:1">
+    <div class="bigstat">確定率<b>76% <span style="font-size:12px;color:var(--mute)">(39/51 検出)</span></b></div>
+    <div style="height:6px;background:#eef1f5;border-radius:6px;overflow:hidden"><div style="width:76%;height:100%;background:var(--teal)"></div></div>
+    <div class="bigstat" style="margin-top:6px">点群カバレッジ<b>61% <span style="font-size:12px;color:var(--mute)">目安</span></b></div>
+    <div style="height:6px;background:#eef1f5;border-radius:6px;overflow:hidden"><div style="width:61%;height:100%;background:var(--navy)"></div></div>
+    <div class="note" style="margin-top:12px">「本当の総数」は未知のため％は目安。残り点群が“未変換”の量を示す。</div>
+    <div class="bigstat" style="margin-top:6px">数量拾い（自動）<b style="font-size:16px">配管 62.4m ／ 弁 19</b></div>
+    </div></div>`})},
+/*11*/{code:'S16',act:'CMS · 出力',dev:'CMSブラウザ',title:'IFCエクスポート',
+ note:'IFCへ出力。まずIFC2x3で疎通（系統色・流体・接続が落ちないか）→ IFC4。ISSX_Provenance（信頼度・AI/人手）も付与し、Revit/Rebroへ。',
+ build:()=>cms({crumb:'Basement Machineroom ▸ <b>エクスポート</b>',pri:'',
+  main:`<div class="panel"><h2>IFCエクスポート</h2><div class="sub">確定済みMEPモデルを標準形式で書き出します。</div>
+   <div class="field"><label>形式</label><div class="seg" style="display:inline-flex"><button class="on">IFC2x3</button><button>IFC4</button><button>点群同梱</button></div>
+     <div class="note"><b>推奨：</b>まず IFC2x3 で疎通確認（系統色・流体・接続）→ IFC4。</div></div>
+   <div class="field"><label>付与する情報</label>
+     <div class="chips"><span class="chip teal">IfcDistributionSystem（系統）</span><span class="chip teal">IfcRelConnectsPorts（接続）</span><span class="chip teal">ISSX_Provenance（信頼度・AI/人手）</span></div></div>
+   <div class="field"><label>受け渡し先</label><div class="chips"><span class="chip">Revit（API/IFC）</span><span class="chip">Rebro（IFC）</span><span class="chip">点群 E57 同梱</span></div>
+     <div class="note"><b>注釈：</b>50%引き渡し＝E57点群＋部分IFC＋Provenance（仕上げは連携パートナー）</div></div>
+   <div style="margin-top:14px"><button class="btn teal" style="padding:9px 16px">⭳ エクスポート実行</button></div></div>`,
+  right:rstatus()})},
+];
+function ipad(barTitle,inner){
+  return `<div class="ipwrap"><div class="ipad"><div class="ipscr">
+    <div class="ipbar">◈ InsightScanX · <b style="color:var(--ink)">${barTitle}</b><span style="margin-left:auto">🔋 iPad Pro · LiDAR</span></div>
+    <div class="ipbody">${inner}</div></div></div></div>`;
+}
+
+let i=0;
+const $=s=>document.querySelector(s);
+function render(){
+  const f=FRAMES[i];
+  $('#stageInner').innerHTML=f.build();
+  $('#act').textContent=f.act;$('#title').textContent=f.title;$('#code').textContent=f.code;$('#dev').textContent=f.dev;$('#note').textContent=f.note;
+  $('#prev').disabled=i===0;$('#next').disabled=i===FRAMES.length-1;
+  $('#dots').innerHTML=FRAMES.map((_,k)=>`<i class="${k===i?'on':''}" data-k="${k}"></i>`).join('');
+  document.querySelectorAll('.dots i').forEach(d=>d.onclick=()=>{i=+d.dataset.k;render()});
+  if(f.after)f.after();
+}
+$('#prev').onclick=()=>{if(i>0){i--;render()}};
+$('#next').onclick=()=>{if(i<FRAMES.length-1){i++;render()}};
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'&&i>0){i--;render()}if(e.key==='ArrowRight'&&i<FRAMES.length-1){i++;render()}});
+render();
+</script>
+
+</body>
+</html>
