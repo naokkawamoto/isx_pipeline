@@ -184,6 +184,18 @@
   .meter b{color:var(--ink)}
   .chip.btnchip{background:#fff;border:1.5px solid var(--purple);color:var(--purple);cursor:pointer;font-weight:700;padding:6px 12px}
   .chip.btnchip:hover{background:#f7e9f3}
+  /* S11 検出ギャラリー（3Dイラスト）＋アニメ */
+  @keyframes s11pop{0%{opacity:0;transform:scale(.55)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+  @keyframes s11spin{to{transform:rotate(360deg)}}
+  .s11gallery{display:none;align-items:stretch;gap:8px;padding:8px 12px;border-top:1px solid var(--border);background:#fff;overflow-x:auto;min-height:94px}
+  .s11gtitle{flex:none;display:flex;flex-direction:column;justify-content:center;gap:5px;font-size:11px;color:var(--mute);width:110px}
+  .s11spin{width:13px;height:13px;border:2px solid #cfd6de;border-top-color:var(--teal);border-radius:50%;animation:s11spin .8s linear infinite;display:inline-block;vertical-align:-2px;margin-right:5px}
+  .s11card{flex:none;width:82px;border:1px solid var(--border);border-radius:9px;background:#fbfcfd;display:flex;flex-direction:column;align-items:center;padding:5px 4px;transform-origin:center}
+  .s11card.new{animation:s11pop .4s cubic-bezier(.2,.9,.3,1.25)}
+  .s11ill{width:100%;height:44px;display:block}
+  .s11card b{font-size:9.5px;font-weight:700;color:#3a4655;margin-top:3px;text-align:center;line-height:1.15}
+  .s11popg{transform-box:fill-box;transform-origin:center;animation:s11pop .36s cubic-bezier(.2,.9,.3,1.25)}
+  .s11btnghost{border:1px solid var(--border);background:#fff;color:#5d6a7a;font:inherit;font-size:11px;padding:4px 9px;border-radius:8px;cursor:pointer;align-self:flex-start}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -272,6 +284,54 @@ const S11_HANG=[
  {id:'UB',type:'ubolt',x:470,cy:44,py:150,ja:'Uボルト・Uバンド'}
 ];
 const S11_EQUIP={x:385,y:445};
+// 検出ギャラリー用の順序（Vision AIが1個ずつ検出する体で増える）
+const S11_DET=[
+ {card:'pipe',ja:'パイプ',node:null},
+ {card:'flange',ja:'フランジ',node:null},
+ {card:'gate',ja:'ゲートバルブ',node:{t:'fit',id:'GV'}},
+ {card:'tee',ja:'チーズ',node:{t:'fit',id:'TEE'}},
+ {card:'elbow',ja:'エルボ90°',node:{t:'fit',id:'EL'}},
+ {card:'elbow',ja:'45°エルボ',node:{t:'fit',id:'E45'}},
+ {card:'butterfly',ja:'バタフライ弁',node:{t:'fit',id:'BV'}},
+ {card:'ball',ja:'ボール弁',node:{t:'fit',id:'BL'}},
+ {card:'ystr',ja:'Yストレーナ',node:{t:'fit',id:'YS'}},
+ {card:'flex',ja:'防振継手',node:{t:'fit',id:'FJ'}},
+ {card:'hanger',ja:'吊り金物',node:{t:'hang',id:'TB'}},
+ {card:'hanger',ja:'吊り金物',node:{t:'hang',id:'UB'}}
+];
+let s11Timer=null;
+// 3Dイラスト（Codex由来のグラデ＋影スタイル）viewBox 0 0 100 66
+function s11_3d(type){
+  var s='<svg viewBox="0 0 100 66" class="s11ill" preserveAspectRatio="xMidYMid meet"><g filter="url(#s11sh)">';
+  if(type==='pipe'){
+    s+='<rect x="14" y="24" width="72" height="20" rx="6" fill="url(#s11pipe)" stroke="#53636d" stroke-width="2.2"/><ellipse cx="14" cy="34" rx="5" ry="11" fill="#73838d" stroke="#53636d" stroke-width="2.2"/>';
+  }else if(type==='flange'){
+    s+='<rect x="16" y="30" width="26" height="8" rx="3" fill="url(#s11pipe)" stroke="#53636d" stroke-width="1.8"/><rect x="58" y="30" width="26" height="8" rx="3" fill="url(#s11pipe)" stroke="#53636d" stroke-width="1.8"/><rect x="44" y="16" width="6" height="36" rx="2" fill="#8d9ba4" stroke="#485761" stroke-width="2"/><rect x="50" y="16" width="6" height="36" rx="2" fill="#8d9ba4" stroke="#485761" stroke-width="2"/><circle cx="47" cy="21" r="1.7" fill="#36444d"/><circle cx="47" cy="47" r="1.7" fill="#36444d"/><circle cx="53" cy="21" r="1.7" fill="#36444d"/><circle cx="53" cy="47" r="1.7" fill="#36444d"/>';
+  }else if(type==='gate'){
+    s+='<path d="M30 34 L50 22 L50 46 Z" fill="url(#s11pump)" stroke="#174d69" stroke-width="2"/><path d="M70 34 L50 22 L50 46 Z" fill="url(#s11pump)" stroke="#174d69" stroke-width="2"/><rect x="46" y="10" width="8" height="10" rx="2" fill="#4d96b9" stroke="#174d69" stroke-width="1.6"/><line x1="41" y1="10" x2="59" y2="10" stroke="#174d69" stroke-width="2.4" stroke-linecap="round"/>';
+  }else if(type==='butterfly'){
+    s+='<circle cx="50" cy="34" r="15" fill="url(#s11pump)" stroke="#174d69" stroke-width="2"/><ellipse cx="50" cy="34" rx="4" ry="14" fill="#d9edf5" stroke="#174d69" stroke-width="1.4"/><rect x="46" y="10" width="8" height="10" rx="2" fill="#4d96b9" stroke="#174d69" stroke-width="1.6"/>';
+  }else if(type==='ball'){
+    s+='<rect x="32" y="30" width="8" height="9" fill="url(#s11pipe)" stroke="#53636d" stroke-width="1.5"/><rect x="60" y="30" width="8" height="9" fill="url(#s11pipe)" stroke="#53636d" stroke-width="1.5"/><circle cx="50" cy="34" r="15" fill="url(#s11pump)" stroke="#174d69" stroke-width="2"/><circle cx="50" cy="34" r="5.5" fill="#d9edf5" stroke="#174d69" stroke-width="1.4"/><line x1="50" y1="19" x2="63" y2="11" stroke="#174d69" stroke-width="2.6" stroke-linecap="round"/>';
+  }else if(type==='tee'){
+    s+='<rect x="16" y="26" width="68" height="16" rx="6" fill="url(#s11pipe)" stroke="#53636d" stroke-width="2"/><rect x="42" y="38" width="16" height="20" rx="5" fill="url(#s11pipe)" stroke="#53636d" stroke-width="2"/>';
+  }else if(type==='elbow'){
+    s+='<path d="M18 30 h30 a8 8 0 0 1 8 8 v22" fill="none" stroke="#53636d" stroke-width="19" stroke-linecap="round"/><path d="M18 30 h30 a8 8 0 0 1 8 8 v22" fill="none" stroke="url(#s11pipe)" stroke-width="15" stroke-linecap="round"/>';
+  }else if(type==='ystr'){
+    s+='<rect x="16" y="22" width="6" height="24" rx="2" fill="#c08d34" stroke="#73551e" stroke-width="1.6"/><path d="M22 26 h33 q9 0 9 8 q0 8 -9 8 h-33 Z" fill="url(#s11gold)" stroke="#73551e" stroke-width="2"/><path d="M45 41 l15 19 -9 6 -15 -19 Z" fill="url(#s11gold)" stroke="#73551e" stroke-width="2"/>';
+  }else if(type==='flex'){
+    s+='<rect x="24" y="22" width="6" height="24" rx="2" fill="#8d9ba4" stroke="#485761" stroke-width="1.6"/><rect x="70" y="22" width="6" height="24" rx="2" fill="#8d9ba4" stroke="#485761" stroke-width="1.6"/><g stroke="#5b8aa6" stroke-width="3" fill="none" stroke-linecap="round"><line x1="36" y1="24" x2="36" y2="44"/><line x1="43" y1="24" x2="43" y2="44"/><line x1="50" y1="24" x2="50" y2="44"/><line x1="57" y1="24" x2="57" y2="44"/><line x1="64" y1="24" x2="64" y2="44"/></g>';
+  }else if(type==='hanger'){
+    s+='<line x1="30" y1="12" x2="70" y2="12" stroke="#9aa3b0" stroke-width="4"/><line x1="50" y1="12" x2="50" y2="30" stroke="#7d8790" stroke-width="3"/><path d="M40 40 q10 12 20 0" fill="none" stroke="#7d8790" stroke-width="3"/><rect x="34" y="36" width="32" height="10" rx="5" fill="url(#s11pipe)" stroke="#53636d" stroke-width="1.8"/>';
+  }else if(type==='pump'){
+    s+='<rect x="18" y="30" width="22" height="9" rx="3" fill="url(#s11pipe)" stroke="#53636d" stroke-width="1.8"/><path d="M40 34 C40 20 54 14 66 20 C78 26 80 42 70 50 C60 58 44 52 40 40 Z" fill="url(#s11pump)" stroke="#174d69" stroke-width="2.4"/><circle cx="58" cy="34" r="11" fill="#d9edf5" stroke="#174d69" stroke-width="2"/>';
+  }else if(type==='motor'){
+    s+='<rect x="30" y="18" width="46" height="32" rx="8" fill="url(#s11motor)" stroke="#17475f" stroke-width="2.2"/><g stroke="#86b8d3" stroke-width="2" opacity=".7"><line x1="38" y1="18" x2="38" y2="50"/><line x1="46" y1="18" x2="46" y2="50"/><line x1="54" y1="18" x2="54" y2="50"/><line x1="62" y1="18" x2="62" y2="50"/></g><path d="M76 27 q7 2 7 7 q0 5 -7 7 Z" fill="#397b9f" stroke="#17475f" stroke-width="2"/>';
+  }else{
+    s+='<rect x="14" y="24" width="72" height="20" rx="6" fill="url(#s11pipe)" stroke="#53636d" stroke-width="2.2"/>';
+  }
+  return s+'</g></svg>';
+}
 let S11_DOTS=[];
 function s11_dots(){
   S11_DOTS=[];
@@ -283,12 +343,12 @@ function s11_dots(){
   for(var j=0;j<70;j++){S11_DOTS.push([S11_EQUIP.x+(Math.random()-0.5)*54,S11_EQUIP.y+(Math.random()-0.2)*46]);}
 }
 s11_dots();
-let S11={phase:1,filled:false,tagged:{},equip:null,nextApproved:false,topoRun:false};
+let S11={phase:1,filled:false,tagged:{},equip:null,nextApproved:false,topoRun:false,detN:0,detDone:false};
 function s11_pipe(p,col,dashed){var w=(p.kind==='thick')?15:8;return '<line x1="'+p.a[0]+'" y1="'+p.a[1]+'" x2="'+p.b[0]+'" y2="'+p.b[1]+'" stroke="'+col+'" stroke-width="'+w+'" stroke-linecap="round" '+(dashed?'stroke-dasharray="9 7"':'')+'/>';}
 function s11_fitColor(f){if(f.auto)return S11C.teal;return S11.tagged[f.id]?S11C.green:S11C.amber;}
-function s11_fit(f){
+function s11_fit(f,anim){
   var c=s11_fitColor(f),x=f.x,y=f.y,dash=(!f.auto&&!S11.tagged[f.id]),da=dash?'stroke-dasharray="5 4"':'',sw=3;
-  var g='<g data-fit="'+f.id+'" style="cursor:'+(f.auto?'default':'pointer')+'">';
+  var g='<g data-fit="'+f.id+'" class="'+(anim?'s11popg':'')+'" style="cursor:'+(f.auto?'default':'pointer')+'">';
   if(f.type==='gate'){
     g+='<path d="M'+(x-13)+','+(y-12)+' L'+x+','+y+' L'+(x-13)+','+(y+12)+' Z" fill="#fff" stroke="'+c+'" stroke-width="'+sw+'" '+da+'/>'
       +'<path d="M'+(x+13)+','+(y-12)+' L'+x+','+y+' L'+(x+13)+','+(y+12)+' Z" fill="#fff" stroke="'+c+'" stroke-width="'+sw+'" '+da+'/>'
@@ -319,8 +379,8 @@ function s11_fit(f){
   if(!f.auto){g+='<text x="'+x+'" y="'+(y+31)+'" font-size="12" text-anchor="middle" fill="'+c+'" font-weight="700">'+(S11.tagged[f.id]?'✓':'?')+'</text>';}
   g+='</g>';return g;
 }
-function s11_hang(h){
-  var c=S11C.teal,x=h.x,g='<g>';
+function s11_hang(h,anim){
+  var c=S11C.teal,x=h.x,g='<g class="'+(anim?'s11popg':'')+'">';
   g+='<line x1="'+(x-16)+'" y1="'+h.cy+'" x2="'+(x+16)+'" y2="'+h.cy+'" stroke="#9aa3b0" stroke-width="4"/>';
   if(h.type==='turnbuckle'){
     g+='<line x1="'+x+'" y1="'+h.cy+'" x2="'+x+'" y2="'+(h.py-30)+'" stroke="'+c+'" stroke-width="2.6"/>'
@@ -346,8 +406,14 @@ function s11_svg(){
     if(late&&!S11.filled){s+=s11_pipe(p,S11C.red,true);}
     else{s+=s11_pipe(p,(p.kind==='thick')?S11C.thick:S11C.thin,false);}
   });
-  // fittings + hangers (phase>=2)
-  if(S11.phase>=2){S11_HANG.forEach(function(h){s+=s11_hang(h);});S11_FITT.forEach(function(f){s+=s11_fit(f);});}
+  // fittings + hangers (phase>=2)：②は検出アニメで1個ずつ増える
+  if(S11.phase>=2){
+    var full=(S11.phase>=3),upto=full?S11_DET.length:S11.detN,revF={},revH={};
+    for(var d=0;d<upto;d++){var nd=S11_DET[d].node;if(nd){if(nd.t==='fit')revF[nd.id]=d;else revH[nd.id]=d;}}
+    var newest=full?-1:(S11.detN-1);
+    S11_HANG.forEach(function(h){if(full||revH[h.id]!==undefined){s+=s11_hang(h,!full&&revH[h.id]===newest);}});
+    S11_FITT.forEach(function(f){if(full||revF[f.id]!==undefined){s+=s11_fit(f,!full&&revF[f.id]===newest);}});
+  }
   // equipment + topology (phase>=3, after topology inference)
   if(S11.phase>=3&&S11.topoRun){
     var e=S11_EQUIP;
@@ -389,11 +455,17 @@ function s11_panel(){
     return h;
   }
   if(S11.phase===2){
+    if(!S11.detDone){
+      return '<div class="rp-h">② 画像認識アイテム <span class="cf mid">検出中</span></div><div class="rp-b">'
+        +'<p style="color:var(--mute);font-size:11.5px;line-height:1.5;margin:0 0 8px"><span class="s11spin"></span>Vision AI が弁・継手・ストレーナ・吊り金物を検出中…</p>'
+        +'<div class="meter">検出 <b>'+S11.detN+' / '+S11_DET.length+'</b></div>'
+        +'<div class="note">下の「検出ギャラリー」に3Dイラストで1個ずつ増えます。完了後に要人手アイテムを確定します。</div></div>';
+    }
     var human=S11_FITT.filter(function(f){return !f.auto;});
     var tagged=human.filter(function(f){return S11.tagged[f.id];}).length;
     var autoN=S11_FITT.filter(function(f){return f.auto;}).length+S11_HANG.length;
     var h='<div class="rp-h">② 画像認識アイテム <span class="cf '+(tagged<human.length?'lo':'hi')+'">'+(tagged<human.length?'要確認 '+(human.length-tagged):'完了')+'</span></div><div class="rp-b">'
-      +'<p style="color:var(--mute);font-size:11.5px;line-height:1.5;margin:0 0 8px">Vision AI が弁・継手・ストレーナ・吊り金物を検出。自動 '+autoN+'、要人手 '+human.length+'（キャンバスの「?」or下のボタンで確定）。</p>';
+      +'<p style="color:var(--mute);font-size:11.5px;line-height:1.5;margin:0 0 8px">検出完了：自動 '+autoN+'、要人手 '+human.length+'（キャンバスの「?」or下のボタンで確定）。</p>';
     human.forEach(function(f){
       h+='<div class="jitem"><div class="r1"><b>'+f.ja+'</b><span class="rr cf '+(S11.tagged[f.id]?'done':'mid')+'">'+(S11.tagged[f.id]?'確定':'要確認')+'</span></div>'
         +(S11.tagged[f.id]?'':'<div class="jbtns"><button class="btn pri s11tag" data-id="'+f.id+'">確定</button></div>')+'</div>';
@@ -422,23 +494,52 @@ function s11_panel(){
   }
   h+='</div>';return h;
 }
+function s11_gallery(){
+  if(S11.phase<2)return '';
+  var full=(S11.phase>=3),upto=full?S11_DET.length:S11.detN,done=full||S11.detDone||upto>=S11_DET.length;
+  var title=done
+    ? '<div class="s11gtitle"><div style="color:var(--ok);font-weight:700">✓ 検出完了</div><div>'+S11_DET.length+'件（Vision AI）</div><button class="s11btnghost" id="s11replay">↻ 再検出</button></div>'
+    : '<div class="s11gtitle"><div><span class="s11spin"></span>検出中…</div><div>'+upto+' / '+S11_DET.length+'</div></div>';
+  var cards='';
+  for(var d=0;d<upto;d++){var it=S11_DET[d],isNew=(!full&&d===S11.detN-1);
+    cards+='<div class="s11card'+(isNew?' new':'')+'">'+s11_3d(it.card)+'<b>'+it.ja+'</b></div>';}
+  return title+cards;
+}
+function s11_animate(){
+  if(s11Timer){clearInterval(s11Timer);s11Timer=null;}
+  if(S11.detN>=S11_DET.length){S11.detDone=true;return;}
+  s11Timer=setInterval(function(){
+    S11.detN++;
+    if(S11.detN>=S11_DET.length){S11.detN=S11_DET.length;S11.detDone=true;clearInterval(s11Timer);s11Timer=null;}
+    s11_render();
+  },460);
+}
 function s11_render(){
-  var head=document.getElementById('s11head');if(!head)return;
+  var head=document.getElementById('s11head');
+  if(!head){if(s11Timer){clearInterval(s11Timer);s11Timer=null;}return;}
   head.innerHTML=s11_head();
   document.getElementById('s11canvas').innerHTML=s11_svg();
+  var g=document.getElementById('s11gallery');
+  if(g){g.style.display=(S11.phase>=2)?'flex':'none';g.innerHTML=s11_gallery();}
   document.getElementById('s11right').innerHTML=s11_panel();
   head.querySelectorAll('.s11step').forEach(function(st){st.onclick=function(){s11_setPhase(+st.dataset.ph);};});
   var tb=document.getElementById('s11topo');if(tb)tb.onclick=function(){s11_runTopo();};
-  document.querySelectorAll('#s11canvas [data-fit]').forEach(function(g){g.onclick=function(){s11_tag(g.getAttribute('data-fit'));};});
+  document.querySelectorAll('#s11canvas [data-fit]').forEach(function(gg){gg.onclick=function(){s11_tag(gg.getAttribute('data-fit'));};});
+  var rp=document.getElementById('s11replay');if(rp)rp.onclick=function(){s11_replay();};
   var fl=document.getElementById('s11fill');if(fl)fl.onclick=function(){S11.filled=true;s11_render();};
   document.querySelectorAll('.s11tag').forEach(function(b){b.onclick=function(){s11_tag(b.dataset.id);};});
   document.querySelectorAll('.s11ch').forEach(function(b){b.onclick=function(){S11.equip=b.dataset.n;s11_render();};});
   var ap=document.getElementById('s11appr');if(ap)ap.onclick=function(){S11.nextApproved=true;s11_render();};
   var rj=document.getElementById('s11rej');if(rj)rj.onclick=function(){S11.equip=null;s11_render();};
 }
-function s11_setPhase(n){S11.phase=n;if(n>=2)S11.filled=true;s11_render();}
+function s11_setPhase(n){
+  S11.phase=n;if(n>=2)S11.filled=true;
+  if(n===2&&!S11.detDone){S11.detN=0;s11_render();s11_animate();return;}
+  s11_render();
+}
+function s11_replay(){S11.detN=0;S11.detDone=false;s11_render();s11_animate();}
 function s11_tag(id){var f=S11_FITT.filter(function(x){return x.id===id;})[0];if(!f||f.auto)return;S11.tagged[id]=true;s11_render();}
-function s11_runTopo(){S11.phase=3;S11.filled=true;S11.topoRun=true;s11_render();}
+function s11_runTopo(){if(s11Timer){clearInterval(s11Timer);s11Timer=null;}S11.phase=3;S11.filled=true;S11.detDone=true;S11.detN=S11_DET.length;S11.topoRun=true;s11_render();}
 
 function sidebar(active){
   const it=[['overview','概要'],['loc','ロケーション'],['issue','課題'],['set','設定']];
@@ -584,11 +685,19 @@ const FRAMES=[
   right:rstatus()})},
 /*8*/{code:'S11',act:'CMS · 分解（HITL）',dev:'CMSブラウザ',title:'分解：① パイプ → ② 画像認識アイテム → ③ 推論（トポロジー）',
  note:'点群を段階的に「意味あるBIM」へ分解。① 幾何でパイプだけ（欠損は人がコミット）→ ② 画像認識で弁・継手が増える（要人手は「?」を確定）→ ③「トポロジー推論をする」で空きポートの先を推論し人が選ぶ。各段で HITL。',
- build:()=>{ S11={phase:1,filled:false,tagged:{},equip:null,nextApproved:false,topoRun:false};
+ build:()=>{ if(s11Timer){clearInterval(s11Timer);s11Timer=null;} S11={phase:1,filled:false,tagged:{},equip:null,nextApproved:false,topoRun:false,detN:0,detDone:false};
   return cms({crumb:'機械室（地下）▸ <b>分解（パイプ→画像認識→推論）</b>',tabs:'プライマリスキャン',pri:'',
    main:`<div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden">
+     <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+       <linearGradient id="s11pipe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3eaee"/><stop offset=".5" stop-color="#aab7bf"/><stop offset="1" stop-color="#74848e"/></linearGradient>
+       <linearGradient id="s11pump" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#70b7d6"/><stop offset="1" stop-color="#28759a"/></linearGradient>
+       <linearGradient id="s11motor" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#609bc0"/><stop offset="1" stop-color="#245f80"/></linearGradient>
+       <linearGradient id="s11gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6c079"/><stop offset="1" stop-color="#c4922f"/></linearGradient>
+       <filter id="s11sh" x="-25%" y="-25%" width="150%" height="165%"><feDropShadow dx="0" dy="2" stdDeviation="1.6" flood-color="#162630" flood-opacity="0.28"/></filter>
+     </defs></svg>
      <div class="s11head" id="s11head"></div>
      <div id="s11canvas" style="flex:1;min-height:0;position:relative;background:#fbfcfd"></div>
+     <div class="s11gallery" id="s11gallery"></div>
      <div class="s11legend">
        <span><i style="border-color:#37617a"></i>太パイプ</span>
        <span><i style="border-color:#5b8aa6"></i>細パイプ</span>
