@@ -275,9 +275,9 @@ const S11_FITT=[
  {id:'BV',type:'butterfly',x:550,y:150,auto:false,ja:'バタフライバルブ'},
  {id:'EL',type:'elbow',x:700,y:150,auto:true,ja:'エルボ90°'},
  {id:'E45',type:'elbow45',x:705,y:262,auto:true,ja:'45°エルボ'},
- {id:'BL',type:'ball',x:385,y:223,auto:false,ja:'ボールバルブ'},
- {id:'YS',type:'ystr',x:385,y:315,auto:false,ja:'Yストレーナ'},
- {id:'FJ',type:'flex',x:385,y:402,auto:false,ja:'防振継手'}
+ {id:'BL',type:'ball',x:385,y:223,auto:false,ja:'ボールバルブ',dir:'v'},
+ {id:'YS',type:'ystr',x:385,y:315,auto:false,ja:'Yストレーナ',dir:'v'},
+ {id:'FJ',type:'flex',x:385,y:402,auto:false,ja:'防振継手',dir:'v'}
 ];
 const S11_HANG=[
  {id:'TB',type:'turnbuckle',x:150,cy:44,py:150,ja:'ターンバックル付き吊りバンド'},
@@ -301,8 +301,8 @@ const S11_DET=[
 ];
 let s11Timer=null;
 // 3Dイラスト（Codex由来のグラデ＋影スタイル）viewBox 0 0 100 66
-function s11_3d(type){
-  var s='<svg viewBox="0 0 100 66" class="s11ill" preserveAspectRatio="xMidYMid meet"><g filter="url(#s11sh)">';
+function s11_3dInner(type){
+  var s='<g filter="url(#s11sh)">';
   if(type==='pipe'){
     s+='<rect x="14" y="24" width="72" height="20" rx="6" fill="url(#s11pipe)" stroke="#53636d" stroke-width="2.2"/><ellipse cx="14" cy="34" rx="5" ry="11" fill="#73838d" stroke="#53636d" stroke-width="2.2"/>';
   }else if(type==='flange'){
@@ -330,7 +330,26 @@ function s11_3d(type){
   }else{
     s+='<rect x="14" y="24" width="72" height="20" rx="6" fill="url(#s11pipe)" stroke="#53636d" stroke-width="2.2"/>';
   }
-  return s+'</g></svg>';
+  return s+'</g>';
+}
+function s11_3d(type){return '<svg viewBox="0 0 100 66" class="s11ill" preserveAspectRatio="xMidYMid meet">'+s11_3dInner(type)+'</svg>';}
+// キャンバス上の3D配管（グラデ円筒）と3D継手（グリフ＋状態リング）
+function s11_pipe3d(p){
+  var dx=p.b[0]-p.a[0],dy=p.b[1]-p.a[1],len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI,w=(p.kind==='thick')?16:9;
+  return '<g transform="translate('+p.a[0]+','+p.a[1]+') rotate('+ang.toFixed(2)+')">'
+    +'<rect x="0" y="'+(-w/2)+'" width="'+len.toFixed(1)+'" height="'+w+'" rx="'+(w/2)+'" fill="url(#s11pipe)" stroke="#53636d" stroke-width="1.6"/></g>';
+}
+function s11_fit3d(f,anim){
+  var map={gate:'gate',butterfly:'butterfly',ball:'ball',tee:'tee',elbow:'elbow',elbow45:'elbow',ystr:'ystr',flex:'flex'};
+  var type=map[f.type]||'gate',w=46,h=30,x=(f.x-w/2),y=(f.y-h/2),rot=(f.dir==='v')?('rotate(90 '+f.x+' '+f.y+')'):'';
+  var g='<g data-fit="'+f.id+'" class="'+(anim?'s11popg':'')+'" style="cursor:'+(f.auto?'default':'pointer')+'">';
+  g+='<g transform="'+rot+'"><svg x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" viewBox="0 0 100 66" preserveAspectRatio="xMidYMid meet">'+s11_3dInner(type)+'</svg></g>';
+  if(!f.auto){
+    var tagged=S11.tagged[f.id],col=tagged?S11C.green:S11C.amber;
+    g+='<circle cx="'+f.x+'" cy="'+f.y+'" r="25" fill="none" stroke="'+col+'" stroke-width="2.4" '+(tagged?'':'stroke-dasharray="5 4"')+'/>'
+      +'<circle cx="'+(f.x+20)+'" cy="'+(f.y-18)+'" r="9" fill="'+col+'"/><text x="'+(f.x+20)+'" y="'+(f.y-14)+'" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">'+(tagged?'✓':'?')+'</text>';
+  }
+  return g+'</g>';
 }
 let S11_DOTS=[];
 function s11_dots(){
@@ -404,7 +423,7 @@ function s11_svg(){
   S11_PIPES.forEach(function(p){
     var late=S11_MISSING[p.id];
     if(late&&!S11.filled){s+=s11_pipe(p,S11C.red,true);}
-    else{s+=s11_pipe(p,(p.kind==='thick')?S11C.thick:S11C.thin,false);}
+    else{s+=s11_pipe3d(p);}
   });
   // fittings + hangers (phase>=2)：②は検出アニメで1個ずつ増える
   if(S11.phase>=2){
@@ -412,7 +431,7 @@ function s11_svg(){
     for(var d=0;d<upto;d++){var nd=S11_DET[d].node;if(nd){if(nd.t==='fit')revF[nd.id]=d;else revH[nd.id]=d;}}
     var newest=full?-1:(S11.detN-1);
     S11_HANG.forEach(function(h){if(full||revH[h.id]!==undefined){s+=s11_hang(h,!full&&revH[h.id]===newest);}});
-    S11_FITT.forEach(function(f){if(full||revF[f.id]!==undefined){s+=s11_fit(f,!full&&revF[f.id]===newest);}});
+    S11_FITT.forEach(function(f){if(full||revF[f.id]!==undefined){s+=s11_fit3d(f,!full&&revF[f.id]===newest);}});
   }
   // equipment + topology (phase>=3, after topology inference)
   if(S11.phase>=3&&S11.topoRun){
@@ -699,11 +718,10 @@ const FRAMES=[
      <div id="s11canvas" style="flex:1;min-height:0;position:relative;background:#fbfcfd"></div>
      <div class="s11gallery" id="s11gallery"></div>
      <div class="s11legend">
-       <span><i style="border-color:#37617a"></i>太パイプ</span>
-       <span><i style="border-color:#5b8aa6"></i>細パイプ</span>
-       <span><i style="border-color:#0d9488"></i>自動（幾何/JIS）</span>
-       <span><i style="border-color:#e0932b"></i>要・人手</span>
-       <span><i style="border-color:#2f8f43"></i>人が確定</span>
+       <span><i style="border-color:#8b98a1"></i>太パイプ（3D）</span>
+       <span><i style="border-color:#b3bec6"></i>細パイプ（3D）</span>
+       <span><i style="border-color:#e0932b"></i>要・人手（点線リング）</span>
+       <span><i style="border-color:#2f8f43"></i>人が確定（✓）</span>
        <span><i style="border-color:#a5348a"></i>推論サジェスト</span>
      </div>
    </div>`,
