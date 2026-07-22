@@ -13,6 +13,7 @@
     --navy:#2b3a72; --navy2:#33468a; --teal:#15a594; --teal-d:#0f8577;
     --page:#f5f7f9; --card:#ffffff; --border:#e6e9ee; --ink:#1e2732; --mute:#6a7686;
     --ok:#16a34a; --warn:#d68a1a; --bad:#d64545; --amber:#e7b53c;
+    --purple:#a5348a; --thick:#37617a; --thin:#5b8aa6;
     --viewA:#3f4e5f; --viewB:#2a3644;
   }
   *{box-sizing:border-box}
@@ -169,6 +170,20 @@
   .pchot{position:absolute;width:32px;height:32px;border-radius:50%;border:2px dashed #bcd3ff;cursor:pointer;z-index:4;transform:translate(-50%,-50%)}
   .pchot:hover{background:#8fb4ff40}
   .recpop{position:absolute;z-index:9;background:#fff;border-radius:11px;box-shadow:0 10px 28px rgba(0,0,0,.3);padding:11px 12px;width:212px;font-size:11.5px;display:none}
+  /* S11 分解ビュー */
+  .s11head{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);background:#fff;font-size:12px}
+  .s11step{display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:9px;border:1.4px solid var(--border);color:#5d6a7a;cursor:pointer;font-weight:600}
+  .s11step.on{border-color:var(--teal);background:#e2f4f1;color:var(--teal-d)}
+  .s11n{width:19px;height:19px;border-radius:50%;background:#c9cfd8;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center}
+  .s11step.on .s11n{background:var(--teal)}
+  .s11topobtn{border:none;background:var(--purple);color:#fff;font:inherit;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:10px;cursor:pointer;box-shadow:0 3px 10px rgba(165,52,138,.32);display:inline-flex;align-items:center;gap:6px}
+  .s11topobtn.done{background:#c9cfd8;box-shadow:none;cursor:default}
+  .s11legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--border);background:#fff;font-size:11px;color:var(--mute)}
+  .s11legend i{display:inline-block;width:20px;height:0;border-top:5px solid;vertical-align:middle;margin-right:5px;border-radius:3px}
+  .meter{font-size:12px;color:var(--mute);margin:8px 0}
+  .meter b{color:var(--ink)}
+  .chip.btnchip{background:#fff;border:1.5px solid var(--purple);color:var(--purple);cursor:pointer;font-weight:700;padding:6px 12px}
+  .chip.btnchip:hover{background:#f7e9f3}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -194,8 +209,7 @@ const IC={
 };
 const giz='<svg viewBox="0 0 40 40"><line x1="20" y1="20" x2="20" y2="6" stroke="#37c26f" stroke-width="2"/><line x1="20" y1="20" x2="33" y2="27" stroke="#d64545" stroke-width="2"/><line x1="20" y1="20" x2="8" y2="27" stroke="#3b82f6" stroke-width="2"/><circle cx="20" cy="6" r="3" fill="#37c26f"/><circle cx="33" cy="27" r="3" fill="#d64545"/><circle cx="8" cy="27" r="3" fill="#3b82f6"/></svg>';
 
-// ---- S11 ダミーMEP（信頼度で色分け）----
-let s11n=8;
+// ---- MEP ダミー（S13–14 / S15 で使用・信頼度で色分け）----
 const CFC={hi:'#37c26f',mid:'#e7b53c',lo:'#e1684f'};
 const MEP_PARTS=[
  {t:'p',a:[120,150,660,150],w:13,c:'hi'},
@@ -225,17 +239,212 @@ function mepSvg(n){
     if(p.t==='v'){const[x,y]=p.a;return `<g><rect x="${x-11}" y="${y-9}" width="22" height="18" rx="3" fill="${col}"/><line x1="${x}" y1="${y-9}" x2="${x}" y2="${y-17}" stroke="${col}" stroke-width="3"/><circle cx="${x}" cy="${y-19}" r="4" fill="none" stroke="${col}" stroke-width="2"/></g>`;}
     const[x,y]=p.a;return `<circle cx="${x}" cy="${y}" r="8" fill="${col}"/>`;}).join('');
 }
-function s11update(){
-  const svg=document.getElementById('lyr-mep'); if(svg) svg.innerHTML=mepSvg(s11n);
-  const c=document.getElementById('mepCount'); if(c) c.textContent=Math.min(s11n,MEP_PARTS.length);
-  const b=document.getElementById('mepBtn'); if(b&&s11n>=MEP_PARTS.length){b.textContent='変換完了';b.disabled=true;b.style.opacity=.6;}
+
+// ========== S11 分解ビュー：パイプ → 画像認識アイテム → 推論(トポロジー) ==========
+const S11C={teal:'#0d9488',green:'#2f8f43',amber:'#e0932b',thick:'#37617a',thin:'#5b8aa6',purple:'#a5348a',red:'#d23b3b'};
+const S11_PIPES=[
+ {id:'T1',kind:'thick',a:[90,150],b:[205,150]},
+ {id:'T2',kind:'thick',a:[245,150],b:[372,150]},
+ {id:'T3',kind:'thick',a:[398,150],b:[538,150]},
+ {id:'T4',kind:'thick',a:[562,150],b:[690,150]},
+ {id:'T5',kind:'thick',a:[705,166],b:[705,250]},
+ {id:'T6',kind:'thick',a:[705,268],b:[628,330]},
+ {id:'N1',kind:'thin',a:[385,166],b:[385,208]},
+ {id:'N2',kind:'thin',a:[385,238],b:[385,300]},
+ {id:'N3',kind:'thin',a:[385,332],b:[385,388]},
+ {id:'N4',kind:'thin',a:[628,336],b:[628,392]},
+ {id:'N5',kind:'thin',a:[628,398],b:[628,452]},
+ {id:'N6',kind:'thin',a:[628,458],b:[628,512]}
+];
+const S11_MISSING={N3:1,T6:1,N5:1};
+const S11_FITT=[
+ {id:'GV',type:'gate',x:225,y:150,auto:true,ja:'ゲートバルブ'},
+ {id:'TEE',type:'tee',x:385,y:150,auto:true,ja:'チーズ'},
+ {id:'BV',type:'butterfly',x:550,y:150,auto:false,ja:'バタフライバルブ'},
+ {id:'EL',type:'elbow',x:700,y:150,auto:true,ja:'エルボ90°'},
+ {id:'E45',type:'elbow45',x:705,y:262,auto:true,ja:'45°エルボ'},
+ {id:'BL',type:'ball',x:385,y:223,auto:false,ja:'ボールバルブ'},
+ {id:'YS',type:'ystr',x:385,y:315,auto:false,ja:'Yストレーナ'},
+ {id:'FJ',type:'flex',x:385,y:402,auto:false,ja:'防振継手'}
+];
+const S11_HANG=[
+ {id:'TB',type:'turnbuckle',x:150,cy:44,py:150,ja:'ターンバックル付き吊りバンド'},
+ {id:'UB',type:'ubolt',x:470,cy:44,py:150,ja:'Uボルト・Uバンド'}
+];
+const S11_EQUIP={x:385,y:445};
+let S11_DOTS=[];
+function s11_dots(){
+  S11_DOTS=[];
+  S11_PIPES.forEach(function(p){
+    var dx=p.b[0]-p.a[0],dy=p.b[1]-p.a[1],len=Math.hypot(dx,dy),nx=-dy/len,ny=dx/len,r=(p.kind==='thick')?9:5,steps=Math.max(7,Math.floor(len/6));
+    for(var i=0;i<=steps;i++){var t=i/steps,bx=p.a[0]+dx*t,by=p.a[1]+dy*t;
+      for(var k=0;k<3;k++){var off=(Math.random()-0.5)*2*r;S11_DOTS.push([bx+nx*off+(Math.random()-0.5)*3,by+ny*off+(Math.random()-0.5)*3]);}}
+  });
+  for(var j=0;j<70;j++){S11_DOTS.push([S11_EQUIP.x+(Math.random()-0.5)*54,S11_EQUIP.y+(Math.random()-0.2)*46]);}
 }
+s11_dots();
+let S11={phase:1,filled:false,tagged:{},equip:null,nextApproved:false,topoRun:false};
+function s11_pipe(p,col,dashed){var w=(p.kind==='thick')?15:8;return '<line x1="'+p.a[0]+'" y1="'+p.a[1]+'" x2="'+p.b[0]+'" y2="'+p.b[1]+'" stroke="'+col+'" stroke-width="'+w+'" stroke-linecap="round" '+(dashed?'stroke-dasharray="9 7"':'')+'/>';}
+function s11_fitColor(f){if(f.auto)return S11C.teal;return S11.tagged[f.id]?S11C.green:S11C.amber;}
+function s11_fit(f){
+  var c=s11_fitColor(f),x=f.x,y=f.y,dash=(!f.auto&&!S11.tagged[f.id]),da=dash?'stroke-dasharray="5 4"':'',sw=3;
+  var g='<g data-fit="'+f.id+'" style="cursor:'+(f.auto?'default':'pointer')+'">';
+  if(f.type==='gate'){
+    g+='<path d="M'+(x-13)+','+(y-12)+' L'+x+','+y+' L'+(x-13)+','+(y+12)+' Z" fill="#fff" stroke="'+c+'" stroke-width="'+sw+'" '+da+'/>'
+      +'<path d="M'+(x+13)+','+(y-12)+' L'+x+','+y+' L'+(x+13)+','+(y+12)+' Z" fill="#fff" stroke="'+c+'" stroke-width="'+sw+'" '+da+'/>'
+      +'<line x1="'+x+'" y1="'+(y-12)+'" x2="'+x+'" y2="'+(y-22)+'" stroke="'+c+'" stroke-width="'+sw+'"/>';
+  }else if(f.type==='butterfly'){
+    g+='<circle cx="'+x+'" cy="'+y+'" r="13" fill="#fff" stroke="'+c+'" stroke-width="'+sw+'" '+da+'/>'
+      +'<line x1="'+(x-9)+'" y1="'+(y+9)+'" x2="'+(x+9)+'" y2="'+(y-9)+'" stroke="'+c+'" stroke-width="'+sw+'"/>'
+      +'<line x1="'+x+'" y1="'+(y-13)+'" x2="'+x+'" y2="'+(y-24)+'" stroke="'+c+'" stroke-width="'+sw+'"/>';
+  }else if(f.type==='ball'){
+    g+='<circle cx="'+x+'" cy="'+y+'" r="14" fill="#fff" stroke="'+c+'" stroke-width="'+sw+'" '+da+'/>'
+      +'<circle cx="'+x+'" cy="'+y+'" r="6" fill="'+c+'"/>'
+      +'<line x1="'+(x-20)+'" y1="'+y+'" x2="'+(x-14)+'" y2="'+y+'" stroke="'+c+'" stroke-width="'+sw+'"/>'
+      +'<line x1="'+(x+14)+'" y1="'+y+'" x2="'+(x+20)+'" y2="'+y+'" stroke="'+c+'" stroke-width="'+sw+'"/>';
+  }else if(f.type==='flex'){
+    var s='';for(var i=0;i<5;i++){var yy=y-16+i*7;s+='<line x1="'+(x-11)+'" y1="'+yy+'" x2="'+(x+11)+'" y2="'+(yy+3.5)+'" stroke="'+c+'" stroke-width="2.4"/>';}
+    g+='<rect x="'+(x-13)+'" y="'+(y-22)+'" width="26" height="4" fill="'+c+'"/><rect x="'+(x-13)+'" y="'+(y+18)+'" width="26" height="4" fill="'+c+'"/>'+s;
+  }else if(f.type==='elbow'){
+    g+='<path d="M'+(x-18)+','+y+' L'+x+','+y+' L'+x+','+(y+18)+'" fill="none" stroke="'+c+'" stroke-width="6" stroke-linecap="round" '+da+'/>';
+  }else if(f.type==='elbow45'){
+    g+='<path d="M'+x+','+(y-16)+' L'+x+','+y+' L'+(x-14)+','+(y+14)+'" fill="none" stroke="'+c+'" stroke-width="6" stroke-linecap="round" '+da+'/>';
+  }else if(f.type==='ystr'){
+    g+='<circle cx="'+x+'" cy="'+y+'" r="7" fill="#fff" stroke="'+c+'" stroke-width="'+sw+'" '+da+'/>'
+      +'<line x1="'+x+'" y1="'+y+'" x2="'+(x+16)+'" y2="'+(y+16)+'" stroke="'+c+'" stroke-width="4"/>'
+      +'<rect x="'+(x+13)+'" y="'+(y+13)+'" width="8" height="8" rx="2" fill="'+c+'"/>';
+  }else if(f.type==='tee'){
+    g+='<circle cx="'+x+'" cy="'+y+'" r="6" fill="'+c+'"/><line x1="'+x+'" y1="'+y+'" x2="'+x+'" y2="'+(y+14)+'" stroke="'+c+'" stroke-width="5"/>';
+  }
+  if(!f.auto){g+='<text x="'+x+'" y="'+(y+31)+'" font-size="12" text-anchor="middle" fill="'+c+'" font-weight="700">'+(S11.tagged[f.id]?'✓':'?')+'</text>';}
+  g+='</g>';return g;
+}
+function s11_hang(h){
+  var c=S11C.teal,x=h.x,g='<g>';
+  g+='<line x1="'+(x-16)+'" y1="'+h.cy+'" x2="'+(x+16)+'" y2="'+h.cy+'" stroke="#9aa3b0" stroke-width="4"/>';
+  if(h.type==='turnbuckle'){
+    g+='<line x1="'+x+'" y1="'+h.cy+'" x2="'+x+'" y2="'+(h.py-30)+'" stroke="'+c+'" stroke-width="2.6"/>'
+      +'<ellipse cx="'+x+'" cy="'+(h.py-40)+'" rx="5" ry="9" fill="none" stroke="'+c+'" stroke-width="2.6"/>'
+      +'<line x1="'+x+'" y1="'+(h.py-30)+'" x2="'+x+'" y2="'+(h.py-8)+'" stroke="'+c+'" stroke-width="2.6"/>'
+      +'<path d="M'+(x-12)+','+(h.py-8)+' Q'+x+','+(h.py+12)+' '+(x+12)+','+(h.py-8)+'" fill="none" stroke="'+c+'" stroke-width="3"/>';
+  }else{
+    g+='<line x1="'+(x-8)+'" y1="'+h.cy+'" x2="'+(x-8)+'" y2="'+(h.py-4)+'" stroke="'+c+'" stroke-width="2.6"/>'
+      +'<line x1="'+(x+8)+'" y1="'+h.cy+'" x2="'+(x+8)+'" y2="'+(h.py-4)+'" stroke="'+c+'" stroke-width="2.6"/>'
+      +'<path d="M'+(x-8)+','+(h.py-9)+' Q'+x+','+(h.py-20)+' '+(x+8)+','+(h.py-9)+'" fill="none" stroke="'+c+'" stroke-width="3"/>';
+  }
+  g+='</g>';return g;
+}
+function s11_svg(){
+  var s='<svg viewBox="0 0 940 600" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">';
+  s+='<line x1="60" y1="44" x2="880" y2="44" stroke="#e6e9ee" stroke-width="2"/>';
+  var op=(S11.phase===1)?0.8:0.14,col=(S11.phase===1)?'#7d93a8':'#aab6c4',ds='';
+  for(var i=0;i<S11_DOTS.length;i++){ds+='<circle cx="'+S11_DOTS[i][0].toFixed(1)+'" cy="'+S11_DOTS[i][1].toFixed(1)+'" r="1.5"/>';}
+  s+='<g fill="'+col+'" opacity="'+op+'">'+ds+'</g>';
+  // pipes (all phases)
+  S11_PIPES.forEach(function(p){
+    var late=S11_MISSING[p.id];
+    if(late&&!S11.filled){s+=s11_pipe(p,S11C.red,true);}
+    else{s+=s11_pipe(p,(p.kind==='thick')?S11C.thick:S11C.thin,false);}
+  });
+  // fittings + hangers (phase>=2)
+  if(S11.phase>=2){S11_HANG.forEach(function(h){s+=s11_hang(h);});S11_FITT.forEach(function(f){s+=s11_fit(f);});}
+  // equipment + topology (phase>=3, after topology inference)
+  if(S11.phase>=3&&S11.topoRun){
+    var e=S11_EQUIP;
+    s+='<line x1="'+e.x+'" y1="388" x2="'+e.x+'" y2="'+(e.y-24)+'" stroke="'+S11C.green+'" stroke-width="2" stroke-dasharray="4 4"/>';
+    if(!S11.equip){
+      s+='<circle cx="'+e.x+'" cy="'+e.y+'" r="26" fill="#fff" stroke="'+S11C.purple+'" stroke-width="2.4" stroke-dasharray="6 5"/>'
+        +'<text x="'+e.x+'" y="'+(e.y+8)+'" font-size="24" text-anchor="middle" fill="'+S11C.purple+'">?</text>';
+    }else{
+      s+='<rect x="'+(e.x-30)+'" y="'+(e.y-20)+'" width="60" height="40" rx="6" fill="#f7e9f3" stroke="'+S11C.purple+'" stroke-width="2.2"/>'
+        +'<circle cx="'+(e.x+34)+'" cy="'+e.y+'" r="12" fill="#fff" stroke="'+S11C.purple+'" stroke-width="2.2"/>'
+        +'<text x="'+(e.x+34)+'" y="'+(e.y+4)+'" font-size="10" text-anchor="middle" fill="'+S11C.purple+'">M</text>'
+        +'<text x="'+e.x+'" y="'+(e.y+5)+'" font-size="11" text-anchor="middle" fill="'+S11C.purple+'" font-weight="700">'+S11.equip+'</text>';
+      if(S11.nextApproved){
+        s+='<line x1="'+e.x+'" y1="'+(e.y-20)+'" x2="'+e.x+'" y2="'+(e.y-40)+'" stroke="'+S11C.green+'" stroke-width="6"/>'
+          +'<circle cx="'+e.x+'" cy="'+(e.y-52)+'" r="11" fill="#fff" stroke="'+S11C.green+'" stroke-width="2.4"/>'
+          +'<path d="M'+(e.x-6)+','+(e.y-52)+' L'+(e.x+6)+','+(e.y-58)+' L'+(e.x+6)+','+(e.y-46)+' Z" fill="'+S11C.green+'"/>'
+          +'<text x="'+(e.x+18)+'" y="'+(e.y-48)+'" font-size="10" fill="'+S11C.green+'">逆止弁（承認済）</text>';
+      }
+    }
+  }
+  s+='</svg>';return s;
+}
+function s11_head(){
+  var steps=[['1','パイプだけ'],['2','画像認識アイテム'],['3','推論（トポロジー）']];
+  var pills=steps.map(function(a){return '<div class="s11step '+((+a[0]===S11.phase)?'on':'')+'" data-ph="'+a[0]+'"><span class="s11n">'+a[0]+'</span>'+a[1]+'</div>';}).join('');
+  var done=S11.topoRun?' done':'';
+  return pills+'<div style="flex:1"></div><button id="s11topo" class="s11topobtn'+done+'">▶ トポロジー推論をする</button>';
+}
+function s11_panel(){
+  if(S11.phase===1){
+    var have=S11_PIPES.length-(S11.filled?0:Object.keys(S11_MISSING).length);
+    var h='<div class="rp-h">① パイプ変換（幾何）</div><div class="rp-b">'
+      +'<p style="color:var(--mute);font-size:11.5px;line-height:1.5;margin:0 0 8px">芯線（中心線）→ パイプに自動変換。素直な配管は自動で立つが、遮蔽・反射で<b>数本欠ける</b>（赤い破線）。</p>'
+      +'<div class="meter">変換済みパイプ：<b>'+have+' / '+S11_PIPES.length+'</b></div>';
+    if(!S11.filled){h+='<button class="btn pri" id="s11fill" style="width:100%;justify-content:center">欠損3本を穴埋め＋人がコミット</button>'
+      +'<div class="note" style="margin-top:8px">隣接パイプの向き・標準スパンから欠損位置を補完し、人が最終コミット。</div>';}
+    else{h+='<div style="color:var(--ok);font-weight:700;font-size:12px">✓ 12/12 穴埋め・人間コミット完了</div>';}
+    h+='<div style="margin-top:10px"><span class="chip teal">自動（幾何）</span><span class="chip" style="background:#e7f4ea;color:#256b34">人間コミット</span></div></div>';
+    return h;
+  }
+  if(S11.phase===2){
+    var human=S11_FITT.filter(function(f){return !f.auto;});
+    var tagged=human.filter(function(f){return S11.tagged[f.id];}).length;
+    var autoN=S11_FITT.filter(function(f){return f.auto;}).length+S11_HANG.length;
+    var h='<div class="rp-h">② 画像認識アイテム <span class="cf '+(tagged<human.length?'lo':'hi')+'">'+(tagged<human.length?'要確認 '+(human.length-tagged):'完了')+'</span></div><div class="rp-b">'
+      +'<p style="color:var(--mute);font-size:11.5px;line-height:1.5;margin:0 0 8px">Vision AI が弁・継手・ストレーナ・吊り金物を検出。自動 '+autoN+'、要人手 '+human.length+'（キャンバスの「?」or下のボタンで確定）。</p>';
+    human.forEach(function(f){
+      h+='<div class="jitem"><div class="r1"><b>'+f.ja+'</b><span class="rr cf '+(S11.tagged[f.id]?'done':'mid')+'">'+(S11.tagged[f.id]?'確定':'要確認')+'</span></div>'
+        +(S11.tagged[f.id]?'':'<div class="jbtns"><button class="btn pri s11tag" data-id="'+f.id+'">確定</button></div>')+'</div>';
+    });
+    h+='</div>';return h;
+  }
+  // phase 3
+  var h='<div class="rp-h">③ トポロジー推論（HITL）</div><div class="rp-b">';
+  if(!S11.topoRun){
+    h+='<p style="color:var(--mute);font-size:11.5px;line-height:1.5">空きポートの先を <b>P&amp;ID・標準図</b> から推論します。</p>'
+      +'<div class="note">右上の <b>「▶ トポロジー推論をする」</b> を押してください。</div>';
+  }else if(!S11.equip){
+    h+='<div class="meter">末端の空きポート（ID:55532 / Port1:null）→ 候補：</div>'
+      +'<button class="chip btnchip s11ch" data-n="遠心ポンプ">遠心ポンプ</button>'
+      +'<button class="chip btnchip s11ch" data-n="モーター駆動ポンプ">モーター駆動ポンプ</button>'
+      +'<button class="chip btnchip s11ch" data-n="立形ポンプ">立形ポンプ</button>'
+      +'<div class="note" style="margin-top:8px">Yストレーナ→ポンプ吸込側、の標準ルールで <b>ポンプ</b> が有力。</div>';
+  }else if(!S11.nextApproved){
+    h+='<div style="color:var(--ok);font-weight:700;font-size:12px">✓ 選択：'+S11.equip+'（モーター直結）</div>'
+      +'<div class="meter">→ さらに推論：吐出側に <b>逆止弁</b> を提案</div>'
+      +'<div class="jbtns"><button class="btn pri" id="s11appr">承認して次へ</button><button class="btn" id="s11rej">却下</button></div>';
+  }else{
+    h+='<div style="color:var(--ok);font-weight:700;font-size:12px">✓ '+S11.equip+' ＋ 逆止弁 を確定</div>'
+      +'<div class="note" style="margin-top:8px">この <b>選ぶ→推論→チェック</b> の1周がそのまま <b>学習データ(GT)</b>。回すほど「次アイテム予測」が賢くなる。</div>'
+      +'<div style="margin-top:10px"><span class="chip" style="background:#f7e9f3;color:#8a2b73">推論</span><span class="chip" style="background:#e7f4ea;color:#256b34">人チェック→GT</span></div>';
+  }
+  h+='</div>';return h;
+}
+function s11_render(){
+  var head=document.getElementById('s11head');if(!head)return;
+  head.innerHTML=s11_head();
+  document.getElementById('s11canvas').innerHTML=s11_svg();
+  document.getElementById('s11right').innerHTML=s11_panel();
+  head.querySelectorAll('.s11step').forEach(function(st){st.onclick=function(){s11_setPhase(+st.dataset.ph);};});
+  var tb=document.getElementById('s11topo');if(tb)tb.onclick=function(){s11_runTopo();};
+  document.querySelectorAll('#s11canvas [data-fit]').forEach(function(g){g.onclick=function(){s11_tag(g.getAttribute('data-fit'));};});
+  var fl=document.getElementById('s11fill');if(fl)fl.onclick=function(){S11.filled=true;s11_render();};
+  document.querySelectorAll('.s11tag').forEach(function(b){b.onclick=function(){s11_tag(b.dataset.id);};});
+  document.querySelectorAll('.s11ch').forEach(function(b){b.onclick=function(){S11.equip=b.dataset.n;s11_render();};});
+  var ap=document.getElementById('s11appr');if(ap)ap.onclick=function(){S11.nextApproved=true;s11_render();};
+  var rj=document.getElementById('s11rej');if(rj)rj.onclick=function(){S11.equip=null;s11_render();};
+}
+function s11_setPhase(n){S11.phase=n;if(n>=2)S11.filled=true;s11_render();}
+function s11_tag(id){var f=S11_FITT.filter(function(x){return x.id===id;})[0];if(!f||f.auto)return;S11.tagged[id]=true;s11_render();}
+function s11_runTopo(){S11.phase=3;S11.filled=true;S11.topoRun=true;s11_render();}
 
 function sidebar(active){
   const it=[['overview','概要'],['loc','ロケーション'],['issue','課題'],['set','設定']];
   return `<div class="side">
     <div class="brand"><div class="logo">◈</div><b>InsightScanX</b></div>
-    <div class="org"><div class="dot"></div>One Technology Japan</div>
+    <div class="org"><div class="dot"></div>大気社（サブコンA）</div>
     <div class="back">‹ プロジェクト一覧に戻る</div>
     <div class="nav">${it.map(([k,l])=>`<a class="${k===active?'on':''}">${IC[k]}<span>${l}</span></a>`).join('')}</div>
     <div class="side-foot"><div class="ava">K</div><div style="font-size:11px;line-height:1.3"><div style="color:#e7ecf2">Kawamoto</div><div style="color:#7f8ea0">管理者 · V3.1.0</div></div></div>
@@ -261,7 +470,7 @@ function objStats(){
     <div class="stf">すべて表示</div></div>`;
 }
 function rstatus(){
-  return `<div class="rpanel"><div class="rp-h">課題 (0) <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#aab3bf" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 16.5l9 5 9-5"/></svg></div>
+  return `<div class="rpanel"><div class="rp-h">課題 (0) <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#aab3bf" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 16.5l9 5 9-5z"/></svg></div>
     <div style="padding:18px 13px;color:#aab3bf;font-size:11.5px;text-align:center;border-bottom:1px solid var(--border)">課題はありません</div>
     <div class="statgrid" style="flex:1"><div class="bigstat">スキャン総数 <b>5</b></div>
       <div class="twocol"><div>未解決<br><b style="font-size:18px">0</b></div><div>解決済み<br><b style="font-size:18px">0</b></div></div>
@@ -275,24 +484,27 @@ function cms({crumb,tabs='プライマリスキャン',right='',main,pri='新規
 }
 
 const FRAMES=[
-/*1*/{code:'S1–S2',act:'CMS · セットアップ',dev:'CMSブラウザ',title:'案件登録：ビル種類＋部屋種別',
- note:'ビル種類で配管アイテムグループを絞り込み → さらに部屋種別で絞り込み。ここが Phase0（L0 Context）。絞り込まれた候補が右に出る。',
- build:()=>cms({crumb:'TKサンプルビル ▸ <span class="s">Locations</span> ▸ <b>新規ロケーション登録</b>',pri:'保存',
-  main:`<div class="panel"><h2>新規ロケーション登録</h2><div class="sub">ビルと部屋の種別を選ぶと、対象の配管アイテムグループが自動で絞り込まれます。</div>
-   <div class="field"><label>ビル種類</label><div class="sel"><span class="v">オフィスビル</span><span>▾</span></div>
-     <div class="note"><b>注釈：</b>ビル種類に基づき配管アイテムグループを絞り込み</div></div>
-   <div class="field"><label>部屋種別</label><div class="sel"><span class="v">機械室（地下・主）</span><span>▾</span></div>
-     <div class="note"><b>注釈：</b>さらに部屋種別に基づき配管アイテムグループを絞り込み</div></div>
+/*1*/{code:'S1–S2',act:'CMS · セットアップ',dev:'CMSブラウザ',title:'ロケーション登録：アカウント→ビル→施設',
+ note:'3階層で登録：アカウント（大気社＝サブコンA）→ ビル（住友不動産 ビルディングA）→ 施設（機械室・地下）。施設種別で配管アイテムグループを絞り込み（L0 Context）。',
+ build:()=>cms({crumb:'大気社（サブコンA）▸ <span class="s">住友不動産 ビルディングA</span> ▸ <b>新規ロケーション登録</b>',pri:'保存',
+  main:`<div class="panel"><h2>新規ロケーション登録</h2><div class="sub">アカウント → ビル → 施設の3階層で登録。施設種別を選ぶと、対象の配管アイテムグループが自動で絞り込まれます（L0 Context）。</div>
+   <div class="field"><label>アカウント（サブコン）</label><div class="sel"><span class="v">大気社（サブコンA）</span><span>▾</span></div></div>
+   <div class="field"><label>ビル（オーナー・物件）</label><div class="sel"><span class="v">住友不動産 — ビルディングA</span><span>▾</span></div></div>
+   <div class="field"><label>施設・部屋</label><div class="sel"><span class="v">機械室（地下）</span><span>▾</span></div>
+     <div class="note"><b>注釈：</b>施設種別（機械室・地下）に基づき配管アイテムグループを絞り込み</div></div>
    <div class="field"><label>絞り込み結果（対象アイテムグループ）</label>
      <div class="chips"><span class="chip teal">冷温水配管</span><span class="chip teal">冷却水配管</span><span class="chip">ゲートバルブ</span><span class="chip">バタフライバルブ</span><span class="chip">フランジ</span><span class="chip">ポンプ</span><span class="chip">熱交換器</span><span class="chip">＋42</span></div></div>
    </div>`,
   right:`<div class="rpanel"><div class="rp-h">絞り込みプレビュー</div><div class="rp-b">
-    <div class="bigstat">対象アイテム種<b>約100</b></div><div style="height:10px"></div>
+    <div class="bigstat">アカウント<b style="font-size:14px">大気社（サブコンA）</b></div><div style="height:8px"></div>
+    <div class="bigstat">ビル<b style="font-size:14px">住友不動産 ビルディングA</b></div><div style="height:8px"></div>
+    <div class="bigstat">施設<b style="font-size:14px">機械室（地下）</b></div><div style="height:10px"></div>
+    <div class="bigstat">対象アイテム種<b>約100</b></div><div style="height:8px"></div>
     <div class="bigstat">参照標準<b style="font-size:14px">MLIT標準図 / JIS</b></div>
-    <div class="note" style="margin-top:14px">機械室（地下・主）はアイテム数 ≦100 種に収まる想定。</div></div></div>`})},
+    <div class="note" style="margin-top:14px">機械室（地下）はアイテム数 ≦100 種に収まる想定。</div></div></div>`})},
 /*2*/{code:'S3',act:'CMS · セットアップ',dev:'CMSブラウザ',title:'下図登録（任意）＋マーカー配置',
  note:'下図はあくまで目安・任意。マーカーはオーバーラップ時の目印として使う（世界座標の必須基準ではない）。',
- build:()=>cms({crumb:'TKサンプルビル ▸ <span class="s">Basement Machineroom</span> ▸ <b>下図</b>',pri:'下図をアップロード',
+ build:()=>cms({crumb:'住友不動産 ビルディングA ▸ <span class="s">機械室（地下）</span> ▸ <b>下図</b>',pri:'下図をアップロード',
   main:`<div class="panel"><h2>下図の登録（任意）</h2><div class="sub">平面図PDF/画像を登録できます。マーカーは重なり合わせの目印として配置します。</div>
    <div style="border:2px dashed var(--border);border-radius:12px;height:64%;position:relative;background:#fafbfc;overflow:hidden">
      <div style="position:absolute;inset:18px;border:1px solid #dfe4ea;border-radius:8px;background:
@@ -302,11 +514,11 @@ const FRAMES=[
      <div style="position:absolute;left:40%;top:80%;background:#fff;border:1px solid var(--border);border-radius:7px;padding:4px 9px;font-size:11.5px;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)">📄 Basement_Plan.pdf</div></div>
    <div class="note" style="margin-top:14px"><b>注釈：</b>下図は目安・任意。マーカー＝オーバーラップ時の目印（下図なし運用も可）。</div></div>`,
   right:rstatus()})},
-/*3*/{code:'S4–S5',act:'iPad · 現場スキャン',dev:'iPadアプリ',title:'部屋選択＋キャプチャモード',
+/*3*/{code:'S4–S5',act:'iPad · 現場スキャン',dev:'iPadアプリ',title:'部屋選択＋キャプチャモード（点群取得）',
  note:'点群取得（MEP選択で画像枚数・端末の向き等が自動最適化）／RoomPlan間取り（優先度低）。AI認識ON。',
  build:()=>ipad('スキャン準備',`
    <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding:20px 26px">
-     <div style="font-size:13px;color:var(--mute)">ロケーション：<b style="color:var(--ink)">Basement Machineroom</b></div>
+     <div style="font-size:13px;color:var(--mute)">ロケーション：<b style="color:var(--ink)">機械室（地下）· 住友不動産 ビルディングA</b></div>
      <div style="font-size:12px;font-weight:600">キャプチャモード</div>
      <div style="display:flex;gap:14px">
        <div class="modecard on"><div class="em">🧊</div>点群取得<div style="color:var(--teal-d);font-size:10px;margin-top:3px">MEP最適化 ON</div></div>
@@ -336,29 +548,29 @@ const FRAMES=[
        <div style="color:var(--mute);margin-top:5px;font-size:10px">→ 数珠つなぎで同系統に伝播</div></div>
      <div class="ipctrl"><span class="tagbtn">＋ タグ</span><span class="recdot"></span><span class="tagbtn">■ 停止</span></div>
    </div>`)},
-/*5*/{code:'S8',act:'iPad · 現場スキャン',dev:'iPadアプリ',title:'終了 → オフラインプレビュー → アップロード',
- note:'オフラインでは点群のプレビューのみ（変換はクラウド）。オンラインになったらクラウドへアップロード。',
+/*5*/{code:'S8',act:'iPad · 現場スキャン',dev:'iPadアプリ',title:'スキャン完了：点群だけを表示（ダミー）',
+ note:'オフラインでは点群のプレビューのみ（変換はクラウド）。まだ意味づけ前＝点群だけ。オンラインになったらクラウドへアップロード。',
  build:()=>ipad('スキャン完了',`
    <div class="cam" style="background:radial-gradient(120% 120% at 50% 25%,#3f4e5f,#232f3c)">
      <div class="pc"></div><div class="blob"></div><div class="grid"></div>
      <svg class="lyr" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice" style="opacity:.3"><g stroke="#cdd8e4" stroke-width="9" fill="none" stroke-linecap="round"><line x1="120" y1="180" x2="680" y2="180"/><line x1="120" y1="180" x2="120" y2="420"/><line x1="360" y1="180" x2="360" y2="380"/><line x1="560" y1="180" x2="560" y2="400"/><line x1="560" y1="380" x2="690" y2="380"/></g><ellipse cx="300" cy="335" rx="82" ry="52" fill="#b9c6d6" opacity=".18"/></svg>
-     <div class="cov">オフライン · 点群プレビュー</div>
+     <div class="cov">オフライン · 点群だけ（プレビュー）</div>
      <div style="position:absolute;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:10px;align-items:center">
        <span class="tagbtn">再スキャン</span>
        <span class="tagbtn" style="background:var(--teal);color:#fff">☁ クラウドへアップロード</span></div>
      <div style="position:absolute;top:12px;left:12px;background:#00000066;color:#fff;font-size:11px;padding:5px 9px;border-radius:9px">タグ 3 · 点群 4.8M点</div>
    </div>`)},
-/*6*/{code:'S9',act:'CMS · 統合',dev:'CMSブラウザ',title:'統合モード：複数点群をマーカーで結合',
- note:'部屋を選ぶと統合モード。複数スキャンをオーバーラップのマーカーで結合。LAS（Leica等）もインポート可。',
- build:()=>cms({crumb:'Basement Machineroom ▸ <b>統合モード</b>',tabs:'プライマリスキャン',pri:'LASをインポート',
+/*6*/{code:'S9',act:'CMS · 統合',dev:'CMSブラウザ',title:'点群表示（統合ビュー）',
+ note:'部屋を選ぶと点群を統合表示。複数スキャンをオーバーラップのマーカーで結合。LAS（Leica等）もインポート可。ここはまだ点群だけ。',
+ build:()=>cms({crumb:'機械室（地下）▸ <b>点群（統合ビュー）</b>',tabs:'プライマリスキャン',pri:'LASをインポート',
   main:viewer('点群',`<div style="position:absolute;top:56px;left:12px;z-index:5"><span class="chip teal" style="background:#0f8577;color:#fff">統合モード ON</span></div>
    <div class="stats" style="width:212px"><div class="h"><span class="pill" style="background:var(--navy)">結合スキャン</span><small>5件</small></div>
      ${['Scan_01','Scan_02','Scan_03','Scan_04','Leica_LAS'].map((s,i)=>`<div class="strow"><span class="ic">${i===4?'📥':'🧊'}</span><span class="nm">${s}</span><span class="cf ${i<4?'done':'mid'}">${i<4?'結合':'取込'}</span></div>`).join('')}
      <div class="stf">マーカーで整列 ✓</div></div>`),
   right:rstatus()})},
-/*7*/{code:'S10.5',act:'CMS · 統合',dev:'CMSブラウザ',title:'点群クリーニング（自動ルール＋手動UI）',
+/*7*/{code:'S10',act:'CMS · 統合',dev:'CMSブラウザ',title:'ゴミ削除（点群クリーニング）',
  note:'変換前にゴミ除去。まず無料のルールで外れ値・映り込み人物を自動除去（＝推論カスケードの“安い手段が先”）→ ブラシで手動削除。undoあり。',
- build:()=>cms({crumb:'Basement Machineroom ▸ <b>クリーニング</b>',pri:'変換へ進む',
+ build:()=>cms({crumb:'機械室（地下）▸ <b>ゴミ削除</b>',pri:'分解へ進む',
   main:viewer('点群',`
    <div style="position:absolute;top:56px;left:12px;z-index:5;display:flex;gap:6px">
      <span class="chip teal" style="background:#0f8577;color:#fff">🖌 手動ブラシ</span><span class="chip" style="background:#ffffffcc">↺ 元に戻す</span></div>
@@ -370,46 +582,27 @@ const FRAMES=[
      <div class="strow"><span class="nm">床/天井の平面</span><span class="cf mid">保持</span></div>
      <div class="stf">残りは手動ブラシで調整</div></div>`),
   right:rstatus()})},
-/*8*/{code:'S11',act:'CMS · 変換＋Judge',dev:'CMSブラウザ',title:'MEP変換（バッチ）→ Judge・レイヤー切替・点群レコメンド',
- note:'レイヤー(メッシュ/点群/MEP/下図)は各ON/OFF。MEPはダミー配管＋継手を信頼度で色分け。点群の◯をタップ→レコメンド。「MEP変換を実行」を押すと変換が増える。右＝LLM-judge。',
- build:()=>{ s11n=8; return cms({crumb:'Basement Machineroom ▸ <b>MEP変換</b>',tabs:'プライマリスキャン',pri:'',
-  main:`<div class="viewer"><div class="grid"></div>
-    <div id="lyr-mesh" class="lyr" style="display:none"><div style="position:absolute;left:24%;top:32%;width:24%;height:36%;background:#ffffff16;border-radius:18px"></div><div style="position:absolute;left:58%;top:28%;width:16%;height:42%;background:#ffffff12;border-radius:14px"></div></div>
-    <div id="lyr-pc" class="lyr"><div class="pc"></div>
-      <div class="pchot" data-name="バタフライバルブ 100A" data-conf="中" style="left:37%;top:41%"></div>
-      <div class="pchot" data-name="フランジ 125A" data-conf="高" style="left:60%;top:33%"></div>
-      <div class="pchot" data-name="ねじ込み式エルボ" data-conf="低" style="left:46%;top:60%"></div></div>
-    <div id="lyr-plan" class="lyr" style="display:none"><div style="position:absolute;inset:13%;border:1px solid #ffffff44;background:repeating-linear-gradient(90deg,#ffffff10 0 1px,transparent 1px 46px),repeating-linear-gradient(#ffffff10 0 1px,transparent 1px 46px)"></div></div>
-    <svg id="lyr-mep" class="lyr" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet">${mepSvg(s11n)}</svg>
-    <div class="lyrpanel"><div style="font-weight:700;color:#26303f">レイヤー表示</div>
-      <div class="lyrrow" data-lyr="mesh"><span class="tg"></span>メッシュ</div>
-      <div class="lyrrow" data-lyr="pc"><span class="tg on"></span>点群</div>
-      <div class="lyrrow" data-lyr="mep"><span class="tg on"></span>MEP</div>
-      <div class="lyrrow" data-lyr="plan"><span class="tg"></span>下図</div>
-      <div style="border-top:1px solid #e6e9ee;margin-top:1px;padding-top:5px;display:flex;gap:9px;font-size:10px;color:#6a7686"><span style="color:#37c26f">●高</span><span style="color:#e7b53c">●中</span><span style="color:#e1684f">●低</span></div></div>
-    ${objStats()}<div class="vhelp">?</div>
-    <div style="position:absolute;bottom:52px;left:12px;display:flex;gap:8px;align-items:center;z-index:6">
-      <button id="mepBtn" class="btn teal" style="box-shadow:0 3px 10px rgba(0,0,0,.28)">＋ MEP変換を実行</button>
-      <span style="background:#000000aa;color:#fff;font-size:11px;padding:6px 10px;border-radius:9px">変換済み <b id="mepCount">${Math.min(s11n,MEP_PARTS.length)}</b> / 51 · 信頼度で色分け</span></div>
-    <div class="recpop" id="recPop"></div>
-    <div class="vbar">${['📏','＋','📊','◎','⭳','⛶'].map((x,k)=>`<span class="${k===2?'on':''}">${x}</span>`).join('')}</div>
-    <div class="gizmo">${giz}</div></div>`,
-  right:`<div class="rpanel"><div class="rp-h">🤖 AI評価（LLM-as-judge） <span class="cf lo">要確認 3</span></div>
-    <div style="flex:1;overflow:auto;padding:12px 13px">
-      <div class="jitem"><div class="r1"><b>Pipe_0039</b><span class="rr cf hi">高 0.94</span></div><p>外径216.6mm → 200A。種（冷水）と整合。</p><div class="jbtns"><button class="btn pri">確定</button></div></div>
-      <div class="jitem"><div class="r1"><b>Pipe_0008</b><span class="rr cf mid">中 0.61</span></div><p>127mmは100A/125A境界。系統一貫性で125A優勢。</p><div class="alt">代替案：呼び径 <b>125A</b>（信頼度中）</div><div class="jbtns"><button class="btn pri">承認</button><button class="btn">選び直す</button></div></div>
-      <div class="jitem"><div class="r1"><b>継手 2000122</b><span class="rr cf lo">低 0.38</span></div><p>接続先が曖昧。工学的もっともらしさ低で要判定。</p><div class="alt">代替案：<b>ねじ込み式エルボ</b></div><div class="jbtns"><button class="btn pri">承認</button><button class="btn">選び直す</button></div></div>
-    </div>
-    <div style="padding:9px 12px;border-top:1px solid var(--border)"><div class="chatbox" style="margin:0">評価を自然言語で質問…（将来：対話）<span class="s">送信</span></div></div></div>`}); },
- after:()=>{
-   document.querySelectorAll('.lyrrow').forEach(r=>{r.onclick=()=>{const t=r.querySelector('.tg');t.classList.toggle('on');const el=document.getElementById('lyr-'+r.dataset.lyr);if(el)el.style.display=t.classList.contains('on')?'':'none';};});
-   const mb=document.getElementById('mepBtn');if(mb)mb.onclick=()=>{s11n=Math.min(s11n+6,MEP_PARTS.length);s11update();};
-   const pop=document.getElementById('recPop');
-   document.querySelectorAll('.pchot').forEach(h=>{h.onclick=()=>{const cf={'高':'hi','中':'mid','低':'lo'}[h.dataset.conf];pop.style.left=(h.offsetLeft+38)+'px';pop.style.top=(h.offsetTop)+'px';pop.style.display='block';pop.innerHTML=`<div style="font-weight:700;margin-bottom:5px">点群レコメンド</div><div style="color:#6a7686;margin-bottom:8px">この点群 → <b style="color:#1e2732">${h.dataset.name}</b> <span class="cf ${cf}">${h.dataset.conf}信頼度</span></div><div class="jbtns"><button class="btn pri" id="recOk">承認して変換</button><button class="btn" id="recNo">選び直す</button></div>`;document.getElementById('recOk').onclick=()=>{s11n=Math.min(s11n+1,MEP_PARTS.length);s11update();pop.style.display='none';};document.getElementById('recNo').onclick=()=>{pop.style.display='none';};};});
- }},
+/*8*/{code:'S11',act:'CMS · 分解（HITL）',dev:'CMSブラウザ',title:'分解：① パイプ → ② 画像認識アイテム → ③ 推論（トポロジー）',
+ note:'点群を段階的に「意味あるBIM」へ分解。① 幾何でパイプだけ（欠損は人がコミット）→ ② 画像認識で弁・継手が増える（要人手は「?」を確定）→ ③「トポロジー推論をする」で空きポートの先を推論し人が選ぶ。各段で HITL。',
+ build:()=>{ S11={phase:1,filled:false,tagged:{},equip:null,nextApproved:false,topoRun:false};
+  return cms({crumb:'機械室（地下）▸ <b>分解（パイプ→画像認識→推論）</b>',tabs:'プライマリスキャン',pri:'',
+   main:`<div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden">
+     <div class="s11head" id="s11head"></div>
+     <div id="s11canvas" style="flex:1;min-height:0;position:relative;background:#fbfcfd"></div>
+     <div class="s11legend">
+       <span><i style="border-color:#37617a"></i>太パイプ</span>
+       <span><i style="border-color:#5b8aa6"></i>細パイプ</span>
+       <span><i style="border-color:#0d9488"></i>自動（幾何/JIS）</span>
+       <span><i style="border-color:#e0932b"></i>要・人手</span>
+       <span><i style="border-color:#2f8f43"></i>人が確定</span>
+       <span><i style="border-color:#a5348a"></i>推論サジェスト</span>
+     </div>
+   </div>`,
+   right:`<div class="rpanel" id="s11right"></div>`}); },
+ after:()=>{ s11_render(); }},
 /*9*/{code:'S13–S14',act:'CMS · 確定',dev:'CMSブラウザ',title:'パーツ確定（属性・プルダウン・タップ確定）',
  note:'MEP/点群のパーツを選ぶと属性＋信頼度を表示。プルダウンで選び直すと「確定」へ。2回目以降は確定するたび周辺を再推論（対話ループ）。undoは保険。全てタップ確定。',
- build:()=>cms({crumb:'Basement Machineroom ▸ <b>レビュー</b>',pri:'IFCエクスポート',
+ build:()=>cms({crumb:'機械室（地下）▸ <b>レビュー</b>',pri:'IFCエクスポート',
   main:viewer('MEP',`<svg class="lyr" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet">${mepSvg(MEP_PARTS.length)}</svg><div style="position:absolute;left:37%;top:23%;width:34px;height:26px;border:2px solid #fff;border-radius:5px;box-shadow:0 0 0 4px #ffffff44,0 0 0 6px #15a59455"></div>
    <div style="position:absolute;bottom:52px;left:12px"><span class="chip" style="background:#ffffffcc">↺ 元に戻す（undo）</span></div>`),
   right:`<div class="rpanel"><div class="rp-h">パーツ属性 <span class="cf mid">中 0.61</span></div>
@@ -425,7 +618,7 @@ const FRAMES=[
     </div></div>`})},
 /*10*/{code:'S15',act:'CMS · 進捗',dev:'CMSブラウザ',title:'進捗％（確定率＋点群カバレッジ）',
  note:'MEPが徐々に仕上がる。進捗は2指標：確定率＝確定/検出、点群カバレッジ＝確定MEPで説明できた点群/全点群（＝「N%変換」の目安）。数量も自ずと拾える。',
- build:()=>cms({crumb:'Basement Machineroom ▸ <b>進捗</b>',pri:'IFCエクスポート',
+ build:()=>cms({crumb:'機械室（地下）▸ <b>進捗</b>',pri:'IFCエクスポート',
   main:viewer('MEP',`<div class="stats" style="width:212px"><div class="h"><span class="pill">変換パーツ積算</span></div>
     ${[['バタフライバルブ',15,12],['フランジ',30,22],['ゲートバルブ',4,4],['ゴム防振継手',1,1],['ねじ込み式エルボ',1,0]].map(([n,t,d])=>`<div class="strow"><span class="nm">${n}</span><span class="ct">${d}/${t}</span></div>`).join('')}
     <div class="stf">確定 39 / 51</div></div>`),
@@ -439,7 +632,7 @@ const FRAMES=[
     </div></div>`})},
 /*11*/{code:'S16',act:'CMS · 出力',dev:'CMSブラウザ',title:'IFCエクスポート',
  note:'IFCへ出力。まずIFC2x3で疎通（系統色・流体・接続が落ちないか）→ IFC4。ISSX_Provenance（信頼度・AI/人手）も付与し、Revit/Rebroへ。',
- build:()=>cms({crumb:'Basement Machineroom ▸ <b>エクスポート</b>',pri:'',
+ build:()=>cms({crumb:'機械室（地下）▸ <b>エクスポート</b>',pri:'',
   main:`<div class="panel"><h2>IFCエクスポート</h2><div class="sub">確定済みMEPモデルを標準形式で書き出します。</div>
    <div class="field"><label>形式</label><div class="seg" style="display:inline-flex"><button class="on">IFC2x3</button><button>IFC4</button><button>点群同梱</button></div>
      <div class="note"><b>推奨：</b>まず IFC2x3 で疎通確認（系統色・流体・接続）→ IFC4。</div></div>
